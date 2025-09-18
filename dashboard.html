@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outil de Mapping - Cockpit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #111;
+            color: #00ffff;
+            overflow-x: hidden;
+        }
+
+        /* Zone principale */
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Zone image */
+        .image-container {
+            flex: 1;
+            position: relative;
+            background: #000;
+            overflow: auto;
+            border-right: 2px solid #00ffff;
+        }
+
+        #cockpit-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            cursor: crosshair;
+            user-select: none;
+        }
+
+        /* Panneau de contrôle */
+        .control-panel {
+            width: 400px;
+            background: #0a0a0a;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 2px solid #00ffff;
+        }
+
+        h2 {
+            color: #00ffff;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 18px;
+        }
+
+        /* Mode selector */
+        .mode-selector {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #1a1a1a;
+            border-radius: 5px;
+            border: 1px solid #00ffff;
+        }
+
+        .mode-button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background: #0a1a2a;
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+
+        .mode-button:hover {
+            background: #00ffff;
+            color: #000;
+        }
+
+        .mode-button.active {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 20px rgba(0,255,255,0.5);
+        }
+
+        /* Élément en cours */
+        .current-element {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #444;
+        }
+
+        .element-input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            background: #0a0a0a;
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            border-radius: 3px;
+        }
+
+        .element-input:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0,255,255,0.3);
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-size: 12px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        /* Liste des éléments placés */
+        .elements-list {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .element-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: #0a0a0a;
+            border-radius: 3px;
+            border: 1px solid #333;
+            transition: all 0.3s;
+        }
+
+        .element-item:hover {
+            border-color: #00ffff;
+            background: #0a1a2a;
+        }
+
+        .element-item.selected {
+            border-color: #00ff00;
+            background: #0a2a0a;
+        }
+
+        .delete-btn {
+            padding: 5px 10px;
+            background: #aa0000;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .delete-btn:hover {
+            background: #ff0000;
+        }
+
+        /* Marqueurs sur l'image */
+        .marker {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ff0000;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(255,0,0,0.5);
+        }
+
+        .marker.button {
+            background: #00ffff;
+            box-shadow: 0 0 10px rgba(0,255,255,0.5);
+        }
+
+        .marker.info {
+            background: #00ff00;
+            box-shadow: 0 0 10px rgba(0,255,0,0.5);
+        }
+
+        .marker.zone {
+            background: #ff00ff;
+            box-shadow: 0 0 10px rgba(255,0,255,0.5);
+        }
+
+        .marker-label {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            white-space: nowrap;
+            pointer-events: none;
+            border: 1px solid currentColor;
+        }
+
+        /* Zone preview */
+        .zone-preview {
+            position: absolute;
+            border: 2px dashed #ff00ff;
+            background: rgba(255,0,255,0.1);
+            pointer-events: none;
+        }
+
+        /* Coordonnées en temps réel */
+        .coordinates {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.9);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #00ffff;
+            z-index: 100;
+            font-family: monospace;
+        }
+
+        /* Boutons d'action */
+        .action-buttons {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #444;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
+
+        .btn-export {
+            background: #00ff00;
+            color: #000;
+        }
+
+        .btn-export:hover {
+            background: #00ff88;
+            box-shadow: 0 0 20px rgba(0,255,0,0.5);
+        }
+
+        .btn-clear {
+            background: #ff4444;
+            color: #fff;
+        }
+
+        .btn-clear:hover {
+            background: #ff6666;
+            box-shadow: 0 0 20px rgba(255,0,0,0.5);
+        }
+
+        .btn-load {
+            background: #4444ff;
+            color: #fff;
+        }
+
+        .btn-load:hover {
+            background: #6666ff;
+            box-shadow: 0 0 20px rgba(0,0,255,0.5);
+        }
+
+        /* Code export */
+        .code-output {
+            background: #000;
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* Instructions */
+        .instructions {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #444;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .instructions h3 {
+            color: #00ff00;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .instructions li {
+            margin: 5px 0;
+        }
+
+        /* Input file stylé */
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: #0a1a2a;
+            border: 2px dashed #00ffff;
+            color: #00ffff;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        .file-input-label:hover {
+            background: #00ffff;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Zone image -->
+        <div class="image-container" id="imageContainer">
+            <!-- Affichage des coordonnées -->
+            <div class="coordinates">
+                <div>X: <span id="coordX">0</span>px</div>
+                <div>Y: <span id="coordY">0</span>px</div>
+                <div>Mode: <span id="currentMode">BOUTON</span></div>
+            </div>
+            
+            <!-- Image -->
+            <img id="cockpit-image" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1920 1080'><rect fill='%23001122' width='1920' height='1080'/><text x='960' y='540' text-anchor='middle' fill='%2300ffff' font-size='40' opacity='0.5'>CHARGEZ VOTRE IMAGE ICI</text><text x='960' y='600' text-anchor='middle' fill='%2300ffff' font-size='20' opacity='0.3'>Utilisez le bouton dans le panneau de droite</text></svg>" alt="Cockpit">
+        </div>
+
+        <!-- Panneau de contrôle -->
+        <div class="control-panel">
+            <h2>🎯 Outil de Mapping</h2>
+
+            <!-- Instructions -->
+            <div class="instructions">
+                <h3>📖 Mode d'emploi :</h3>
+                <ul>
+                    <li>1️⃣ Chargez votre image de cockpit</li>
+                    <li>2️⃣ Sélectionnez un type d'élément</li>
+                    <li>3️⃣ Cliquez sur l'image pour placer</li>
+                    <li>4️⃣ Exportez le code final</li>
+                </ul>
+            </div>
+
+            <!-- Charger image -->
+            <div class="file-input-wrapper">
+                <input type="file" id="imageInput" accept="image/*">
+                <label for="imageInput" class="file-input-label">
+                    📁 CHARGER VOTRE IMAGE DE COCKPIT
+                </label>
+            </div>
+
+            <!-- Sélection du mode -->
+            <div class="mode-selector">
+                <h3>Type d'élément à placer :</h3>
+                <button class="mode-button active" data-mode="button">🔘 BOUTON</button>
+                <button class="mode-button" data-mode="info">📊 INFO/HUD</button>
+                <button class="mode-button" data-mode="zone">⬜ ZONE INTERACTIVE</button>
+            </div>
+
+            <!-- Élément en cours - VERSION AVANCÉE -->
+            <div class="current-element">
+                <h3>Configurer l'élément :</h3>
+                
+                <!-- Nom -->
+                <label for="elementName">Nom :</label>
+                <input type="text" id="elementName" class="element-input" placeholder="Ex: BTN1, RADAR, etc." value="BTN">
+                
+                <!-- Taille (toujours visible) -->
+                <label for="elementWidth">Largeur (px) :</label>
+                <input type="number" id="elementWidth" class="element-input" value="120" min="10" max="500">
+                
+                <label for="elementHeight">Hauteur (px) :</label>
+                <input type="number" id="elementHeight" class="element-input" value="40" min="10" max="300">
+                
+                <!-- Visibilité -->
+                <label for="elementVisible">Visibilité :</label>
+                <select id="elementVisible" class="element-input">
+                    <option value="invisible">INVISIBLE (recommandé)</option>
+                    <option value="debug">VISIBLE (debug)</option>
+                    <option value="outline">CONTOUR SEULEMENT</option>
+                </select>
+                
+                <!-- Type de modal -->
+                <label for="modalType">Type de fenêtre :</label>
+                <select id="modalType" class="element-input">
+                    <option value="small">Petite modal (400x300)</option>
+                    <option value="medium">Modal moyenne (600x400)</option>
+                    <option value="large">Grande modal (800x600)</option>
+                    <option value="fullscreen">Plein écran</option>
+                    <option value="custom">Taille personnalisée</option>
+                </select>
+                
+                <!-- Taille modal personnalisée -->
+                <div id="customModalSize" style="display: none;">
+                    <label for="modalWidth">Largeur modal (px) :</label>
+                    <input type="number" id="modalWidth" class="element-input" value="600" min="200" max="1200">
+                    
+                    <label for="modalHeight">Hauteur modal (px) :</label>
+                    <input type="number" id="modalHeight" class="element-input" value="400" min="150" max="800">
+                </div>
+                
+                <!-- Action/Contenu -->
+                <label for="elementAction">Contenu de la modal :</label>
+                <textarea id="elementAction" class="element-input" placeholder="Ex: Bouton 1 joueur, Menu principal, etc." style="border: 2px solid #ffaa00; height: 80px; resize: vertical;"></textarea>
+                
+                <!-- Couleur thème -->
+                <label for="elementColor">Couleur thème :</label>
+                <select id="elementColor" class="element-input">
+                    <option value="cyan">💫 Cyan (par défaut)</option>
+                    <option value="green">🟢 Vert</option>
+                    <option value="red">🔴 Rouge</option>
+                    <option value="purple">🟣 Violet</option>
+                    <option value="yellow">🟡 Jaune</option>
+                </select>
+            </div>
+
+            <!-- Liste des éléments -->
+            <h3>Éléments placés :</h3>
+            <div class="elements-list" id="elementsList">
+                <div style="opacity: 0.5; text-align: center;">Aucun élément placé</div>
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="action-buttons">
+                <button class="action-btn btn-export" onclick="exportCode()">
+                    📋 EXPORTER LE CODE
+                </button>
+                <button class="action-btn btn-clear" onclick="clearAll()">
+                    🗑️ TOUT EFFACER
+                </button>
+                <button class="action-btn btn-load" onclick="loadExample()">
+                    📦 CHARGER EXEMPLE
+                </button>
+            </div>
+
+            <!-- Zone de code -->
+            <div id="codeOutput" class="code-output" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'button';
+        let elements = [];
+        let selectedElement = null;
+        let isPlacingZone = false;
+        let zoneStart = null;
+
+        // Chargement de l'image
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('cockpit-image').src = event.target.result;
+                    showNotification('Image chargée avec succès !');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Sélection du mode
+        document.querySelectorAll('.mode-button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.mode-button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentMode = this.dataset.mode;
+                document.getElementById('currentMode').textContent = this.textContent.substring(2);
+            });
+        });
+        
+        // Gestion type de modal
+        document.getElementById('modalType').addEventListener('change', function() {
+            const customDiv = document.getElementById('customModalSize');
+            customDiv.style.display = this.value === 'custom' ? 'block' : 'none';
+        });
+
+        // Suivi de la souris
+        document.getElementById('cockpit-image').addEventListener('mousemove', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = Math.round(e.clientX - rect.left);
+            const y = Math.round(e.clientY - rect.top);
+            
+            document.getElementById('coordX').textContent = x;
+            document.getElementById('coordY').textContent = y;
+        });
+
+        // Clic sur l'image
+        document.getElementById('cockpit-image').addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = Math.round(e.clientX - rect.left);
+            const y = Math.round(e.clientY - rect.top);
+            
+            placeElement(x, y);
+        });
+
+        // Placer un élément - VERSION AVANCÉE
+        function placeElement(x, y) {
+            const name = document.getElementById('elementName').value || 'BTN';
+            const action = document.getElementById('elementAction').value || '';
+            const width = parseInt(document.getElementById('elementWidth').value) || 120;
+            const height = parseInt(document.getElementById('elementHeight').value) || 40;
+            const visible = document.getElementById('elementVisible').value;
+            const modalType = document.getElementById('modalType').value;
+            const modalWidth = parseInt(document.getElementById('modalWidth').value) || 600;
+            const modalHeight = parseInt(document.getElementById('modalHeight').value) || 400;
+            const color = document.getElementById('elementColor').value;
+            
+            // Validation des champs
+            if (!name.trim()) {
+                alert('⚠️ Veuillez donner un nom à votre élément !');
+                return;
+            }
+            
+            if (!action.trim()) {
+                alert('⚠️ Veuillez décrire le contenu de la modal !\nEx: "Bouton 1 joueur", "Menu principal", etc.');
+                return;
+            }
+            
+            const element = {
+                id: Date.now(),
+                type: currentMode,
+                name: name,
+                action: action,
+                x: x,
+                y: y,
+                width: width,
+                height: height,
+                visible: visible,
+                modalType: modalType,
+                modalWidth: modalWidth,
+                modalHeight: modalHeight,
+                color: color
+            };
+
+            elements.push(element);
+            createMarker(element);
+            updateElementsList();
+            showNotification(`${name} placé à (${x}, ${y}) - ${width}x${height}px - ${visible}`);
+            
+            // Réinitialiser le nom pour le prochain élément
+            document.getElementById('elementName').value = 'BTN' + (elements.length + 1);
+        }
+
+        // Créer un marqueur visuel
+        function createMarker(element) {
+            const container = document.getElementById('imageContainer');
+            
+            if (element.type === 'zone') {
+                // Créer une zone
+                const zone = document.createElement('div');
+                zone.className = 'zone-preview';
+                zone.id = `marker-${element.id}`;
+                zone.style.left = element.x + 'px';
+                zone.style.top = element.y + 'px';
+                zone.style.width = element.width + 'px';
+                zone.style.height = element.height + 'px';
+                
+                const label = document.createElement('div');
+                label.className = 'marker-label';
+                label.textContent = element.name;
+                label.style.color = '#ff00ff';
+                zone.appendChild(label);
+                
+                container.appendChild(zone);
+            } else {
+                // Créer un point
+                const marker = document.createElement('div');
+                marker.className = `marker ${element.type}`;
+                marker.id = `marker-${element.id}`;
+                marker.style.left = element.x + 'px';
+                marker.style.top = element.y + 'px';
+                
+                const label = document.createElement('div');
+                label.className = 'marker-label';
+                label.textContent = element.name;
+                label.style.color = element.type === 'button' ? '#00ffff' : '#00ff00';
+                marker.appendChild(label);
+                
+                marker.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectElement(element.id);
+                });
+                
+                container.appendChild(marker);
+            }
+        }
+
+        // Mettre à jour la liste
+        function updateElementsList() {
+            const list = document.getElementById('elementsList');
+            
+            if (elements.length === 0) {
+                list.innerHTML = '<div style="opacity: 0.5; text-align: center;">Aucun élément placé</div>';
+                return;
+            }
+            
+            list.innerHTML = elements.map(el => `
+                <div class="element-item ${selectedElement === el.id ? 'selected' : ''}" data-id="${el.id}">
+                    <div>
+                        <strong>${el.name}</strong>
+                        <br>
+                        <small>${el.type} - (${el.x}, ${el.y})</small>
+                    </div>
+                    <button class="delete-btn" onclick="deleteElement(${el.id})">✖</button>
+                </div>
+            `).join('');
+        }
+
+        // Supprimer un élément
+        function deleteElement(id) {
+            elements = elements.filter(el => el.id !== id);
+            const marker = document.getElementById(`marker-${id}`);
+            if (marker) marker.remove();
+            updateElementsList();
+            showNotification('Élément supprimé');
+        }
+
+        // Tout effacer
+        function clearAll() {
+            if (confirm('Voulez-vous vraiment tout effacer ?')) {
+                elements = [];
+                document.querySelectorAll('.marker, .zone-preview').forEach(m => m.remove());
+                updateElementsList();
+                showNotification('Tous les éléments ont été supprimés');
+            }
+        }
+
+        // Exporter le code - VERSION AVANCÉE
+        function exportCode() {
+            if (elements.length === 0) {
+                alert('Aucun élément à exporter !');
+                return;
+            }
+
+            let code = '/* ÉLÉMENTS INTERACTIFS DU COCKPIT - CONFIGURATION AVANCÉE */\n\n';
+            
+            elements.forEach(el => {
+                code += `/*\n`;
+                code += ` * ÉLÉMENT: ${el.name}\n`;
+                code += ` * Position: (${el.x}, ${el.y})\n`;
+                code += ` * Taille: ${el.width}x${el.height}px\n`;
+                code += ` * Visibilité: ${el.visible}\n`;
+                code += ` * Modal: ${el.modalType}\n`;
+                code += ` * Couleur: ${el.color}\n`;
+                code += ` * Contenu: ${el.action}\n`;
+                code += ` */\n`;
+                code += `ELEMENT_${el.name} = {\n`;
+                code += `    x: ${el.x},\n`;
+                code += `    y: ${el.y},\n`;
+                code += `    width: ${el.width},\n`;
+                code += `    height: ${el.height},\n`;
+                code += `    visible: "${el.visible}",\n`;
+                code += `    modalType: "${el.modalType}",\n`;
+                code += `    modalWidth: ${el.modalWidth},\n`;
+                code += `    modalHeight: ${el.modalHeight},\n`;
+                code += `    color: "${el.color}",\n`;
+                code += `    content: "${el.action.replace(/"/g, '\\"')}",\n`;
+                code += `    type: "${el.type}"\n`;
+                code += `};\n\n`;
+            });
+
+            // Afficher le code
+            const output = document.getElementById('codeOutput');
+            output.textContent = code;
+            output.style.display = 'block';
+            
+            // Copier dans le presse-papier
+            navigator.clipboard.writeText(code).then(() => {
+                showNotification('Configuration avancée copiée dans le presse-papier !');
+            });
+        }
+
+        // Charger un exemple
+        function loadExample() {
+            elements = [
+                { id: 1, type: 'button', name: 'COMBAT', x: 960, y: 50, action: 'Ouvre module combat' },
+                { id: 2, type: 'button', name: 'SHIELDS', x: 1700, y: 50, action: 'Gestion boucliers' },
+                { id: 3, type: 'info', name: 'VITESSE', x: 200, y: 150, action: 'Affiche vitesse' },
+                { id: 4, type: 'zone', name: 'RADAR', x: 860, y: 440, width: 200, height: 200, action: 'Zone radar centrale' }
+            ];
+            
+            // Nettoyer et recréer
+            document.querySelectorAll('.marker, .zone-preview').forEach(m => m.remove());
+            elements.forEach(el => createMarker(el));
+            updateElementsList();
+            showNotification('Exemple chargé !');
+        }
+
+        // Notification
+        function showNotification(message) {
+            const notif = document.createElement('div');
+            notif.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0,255,255,0.9);
+                color: #000;
+                padding: 10px 20px;
+                border-radius: 5px;
+                font-weight: bold;
+                z-index: 1000;
+                animation: slideUp 0.3s ease-out;
+            `;
+            notif.textContent = message;
+            document.body.appendChild(notif);
+            
+            setTimeout(() => notif.remove(), 3000);
+        }
+
+        // Animation CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideUp {
+                from {
+                    transform: translateX(-50%) translateY(100px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(-50%) translateY(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Message d'accueil
+        setTimeout(() => {
+            showNotification('Bienvenue ! Chargez votre image pour commencer.');
+        }, 500);
+    </script>
+</body>
+</html>

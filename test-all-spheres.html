@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Toutes les Sphères</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .sphere-test {
+            flex: 1;
+            min-width: 300px;
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        iframe {
+            width: 100%;
+            height: 300px;
+            border: none;
+        }
+        h3 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #00ffff;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; margin-bottom: 30px;">Test de Toutes les Sphères</h1>
+    
+    <div class="container">
+        <div class="sphere-test">
+            <h3>Sphère 1 - Vortex Galactique</h3>
+            <iframe src="sphere1.html"></iframe>
+        </div>
+        
+        <div class="sphere-test">
+            <h3>Sphère 2 - Structure Géodésique</h3>
+            <iframe src="sphere2.html"></iframe>
+        </div>
+        
+        <div class="sphere-test">
+            <h3>Sphère 3 - Sphère Magique (Simple)</h3>
+            <iframe src="sphere3-simple.html"></iframe>
+        </div>
+    </div>
+    
+    <div class="sphere-test" style="margin-top: 20px;">
+        <h3>Bouclier Alvéolaire 3D</h3>
+        <iframe src="test-alveolaire.html" style="height: 500px;"></iframe>
+    </div>
+    
+    <div style="text-align: center; margin-top: 30px;">
+        <p>Si vous voyez les quatre expériences 3D animées, tout fonctionne correctement !</p>
+        <p><a href="spheres.html" style="color: #00ffff;">Retour à l'interface de navigation</a></p>
+    </div>
+</body>
+</html>

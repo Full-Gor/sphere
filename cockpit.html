@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cockpit Interactif Star Citizen</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            overflow: hidden;
+            background: #000;
+            color: #00ffff;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Image de fond du cockpit */
+        .cockpit-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('image.png') center/cover;
+            z-index: 1;
+        }
+
+        /* Overlay pour les effets */
+        .overlay-effects {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+            background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.3) 100%);
+        }
+
+        /* Zones cliquables intégrées */
+        .interactive-zone {
+            position: absolute;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10;
+        }
+
+        /* Bouton COMBAT en haut */
+        .zone-combat {
+            top: 15px;
+            left: 50px;
+            width: 100px;
+            height: 35px;
+            border: 2px solid transparent;
+            border-radius: 5px;
+        }
+
+        /* Bouton STARMAP */
+        .zone-starmap {
+            top: 15px;
+            left: 170px;
+            width: 120px;
+            height: 35px;
+            border: 2px solid transparent;
+            border-radius: 5px;
+        }
+
+        /* Boutons latéraux gauche - Panneau armement */
+        .zone-missions {
+            top: 120px;
+            left: 30px;
+            width: 200px;
+            height: 60px;
+            border: 2px solid transparent;
+            border-radius: 5px;
+        }
+
+        .zone-squadron {
+            top: 200px;
+            left: 30px;
+            width: 200px;
+            height: 60px;
+            border: 2px solid transparent;
+            border-radius: 5px;
+        }
+
+        .zone-garage {
+            top: 280px;
+            left: 30px;
+            width: 200px;
+            height: 60px;
+            border: 2px solid transparent;
+            border-radius: 5px;
+        }
+
+        /* Boutons latéraux droite - Panneau contacts */
+        .zone-shields {
+            top: 15px;
+            right: 250px;
+            width: 80px;
+            height: 35px;
+            border: 2px solid transparent;
+            border-radius: 5px;
+        }
+
+        .zone-ground {
+            top: 15px;
+            right: 150px;
+            width: 80px;
+            height: 35px;
+            border: 2px solid transparent;
+            border-radius: 5px;
+        }
+
+        .zone-options {
+            top: 15px;
+            right: 50px;
+            width: 80px;
+            height: 35px;
+            border: 2px solid transparent;
+            border-radius: 5px;
+        }
+
+        /* Radar central cliquable - Grand radar en bas */
+        .zone-radar {
+            top: 70%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+        }
+
+        /* Effets au survol */
+        .interactive-zone:hover {
+            background: rgba(0, 255, 255, 0.1);
+            border-color: rgba(0, 255, 255, 0.5) !important;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            animation: zonePulse 0.5s ease-out;
+        }
+
+        @keyframes zonePulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+        }
+
+        /* Animation de clic */
+        .interactive-zone.clicked {
+            animation: clickEffect 0.3s ease-out;
+            background: rgba(0, 255, 255, 0.3) !important;
+            border-color: #00ffff !important;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.8);
+        }
+
+        @keyframes clickEffect {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(0.95);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Labels flottants pour les zones */
+        .zone-label {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 20, 40, 0.9);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .interactive-zone:hover .zone-label {
+            opacity: 1;
+        }
+
+        /* Fenêtre modale holographique */
+        .holo-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0) rotateX(90deg);
+            width: 70%;
+            max-width: 900px;
+            height: 60%;
+            background: linear-gradient(135deg, rgba(0,20,40,0.95), rgba(0,40,80,0.9));
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            backdrop-filter: blur(20px);
+            box-shadow: 
+                0 0 100px rgba(0,255,255,0.5),
+                inset 0 0 50px rgba(0,255,255,0.1);
+            overflow: hidden;
+        }
+
+        .holo-modal::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(0,255,255,0.1), transparent);
+            animation: hologramScan 3s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes hologramScan {
+            0% {
+                transform: translateX(-100%) translateY(-100%);
+            }
+            100% {
+                transform: translateX(100%) translateY(100%);
+            }
+        }
+
+        .holo-modal.active {
+            transform: translate(-50%, -50%) scale(1) rotateX(0deg);
+            opacity: 1;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(0,255,255,0.3);
+            position: relative;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px rgba(0,255,255,0.8);
+            animation: textGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes textGlow {
+            0% {
+                text-shadow: 0 0 20px rgba(0,255,255,0.8);
+            }
+            100% {
+                text-shadow: 0 0 30px rgba(0,255,255,1);
+            }
+        }
+
+        .close-button {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,0,0,0.2);
+            border: 2px solid rgba(255,0,0,0.5);
+            border-radius: 50%;
+            color: #ff6666;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .close-button:hover {
+            background: rgba(255,0,0,0.4);
+            border-color: #ff0000;
+            transform: rotate(90deg) scale(1.1);
+            box-shadow: 0 0 20px rgba(255,0,0,0.5);
+        }
+
+        .modal-content {
+            height: calc(100% - 80px);
+            overflow-y: auto;
+            color: #00ffff;
+            padding-right: 10px;
+        }
+
+        /* Scrollbar personnalisée */
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: rgba(0,40,80,0.3);
+            border-radius: 4px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background: rgba(0,255,255,0.5);
+            border-radius: 4px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,255,255,0.8);
+        }
+
+        /* Effets de scanlines */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 3;
+            opacity: 0.05;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,255,255,0.1) 2px,
+                rgba(0,255,255,0.1) 4px
+            );
+            animation: scanlineMove 8s linear infinite;
+        }
+
+        @keyframes scanlineMove {
+            0% {
+                transform: translateY(0);
+            }
+            100% {
+                transform: translateY(10px);
+            }
+        }
+
+        /* Effet de distorsion holographique */
+        .holo-distortion {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.3), transparent);
+            animation: distortionMove 5s linear infinite;
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        @keyframes distortionMove {
+            0% {
+                transform: translateY(0);
+            }
+            100% {
+                transform: translateY(100vh);
+            }
+        }
+
+        /* Particules flottantes */
+        .particle {
+            position: fixed;
+            width: 2px;
+            height: 2px;
+            background: #00ffff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0;
+            animation: particleFloat 10s linear infinite;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                opacity: 0;
+                transform: translateY(100vh) translateX(0);
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100vh) translateX(100px);
+            }
+        }
+
+        /* Notification système */
+        .system-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,40,80,0.9);
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            padding: 15px 20px;
+            transform: translateX(400px);
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 500;
+            max-width: 300px;
+        }
+
+        .system-notification.show {
+            transform: translateX(0);
+        }
+
+        .notification-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .notification-message {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* Bouton d'aide */
+        .help-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(0,40,80,0.8);
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            color: #00ffff;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .help-button:hover {
+            background: rgba(0,60,120,0.9);
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 0 30px rgba(0,255,255,0.5);
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Image de fond -->
+    <div class="cockpit-background"></div>
+    
+    <!-- Effets visuels -->
+    <div class="overlay-effects"></div>
+    <div class="scanlines"></div>
+    <div class="holo-distortion"></div>
+    
+    <!-- Particules -->
+    <div id="particles-container"></div>
+    
+    <!-- Zones interactives superposées sur l'image -->
+    <div class="interactive-zone zone-combat" data-tab="combat">
+        <span class="zone-label">COMBAT</span>
+    </div>
+    
+    <div class="interactive-zone zone-starmap" data-tab="starmap">
+        <span class="zone-label">CARTE STELLAIRE</span>
+    </div>
+    
+    <div class="interactive-zone zone-missions" data-tab="missions">
+        <span class="zone-label">MISSIONS</span>
+    </div>
+    
+    <div class="interactive-zone zone-squadron" data-tab="squadron">
+        <span class="zone-label">ESCADRON</span>
+    </div>
+    
+    <div class="interactive-zone zone-garage" data-tab="garage">
+        <span class="zone-label">GARAGE</span>
+    </div>
+    
+    <div class="interactive-zone zone-shields" data-tab="shields">
+        <span class="zone-label">BOUCLIERS</span>
+    </div>
+    
+    <div class="interactive-zone zone-ground" data-tab="ground">
+        <span class="zone-label">TERRAIN</span>
+    </div>
+    
+    <div class="interactive-zone zone-options" data-tab="options">
+        <span class="zone-label">OPTIONS</span>
+    </div>
+    
+    <div class="interactive-zone zone-radar" data-tab="radar">
+        <span class="zone-label">SYSTÈME RADAR</span>
+    </div>
+    
+    <!-- Modal holographique -->
+    <div class="holo-modal" id="modal">
+        <div class="modal-header">
+            <div class="modal-title" id="modal-title">SYSTÈME</div>
+            <div class="close-button" onclick="closeModal()">×</div>
+        </div>
+        <div class="modal-content" id="modal-content">
+            <!-- Le contenu sera injecté ici -->
+        </div>
+    </div>
+    
+    <!-- Notification système -->
+    <div class="system-notification" id="notification">
+        <div class="notification-title">SYSTÈME</div>
+        <div class="notification-message" id="notification-message">Prêt</div>
+    </div>
+    
+    <!-- Bouton d'aide -->
+    <div class="help-button" onclick="showHelp()">?</div>
+    
+    <script>
+        // Contenu des onglets
+        const tabContent = {
+            combat: {
+                title: "MODULE DE COMBAT",
+                content: `
+                    <h3 style="color: #ff6666;">⚔️ Systèmes de Combat</h3>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 20px;">
+                        <div style="background: rgba(255,0,0,0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,100,100,0.3);">
+                            <h4>Armes Principales</h4>
+                            <div style="margin-top: 10px;">
+                                <div>Laser MK-IV: <span style="color: #00ff00;">ACTIF</span></div>
+                                <div>Missiles: <span style="color: #ffff00;">24/32</span></div>
+                                <div>Canon Plasma: <span style="color: #00ff00;">PRÊT</span></div>
+                            </div>
+                        </div>
+                        <div style="background: rgba(255,100,0,0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,150,100,0.3);">
+                            <h4>Cibles Détectées</h4>
+                            <div style="margin-top: 10px;">
+                                <div>🎯 Hostile Alpha - 2.3km</div>
+                                <div>🎯 Hostile Beta - 5.7km</div>
+                                <div>⚠️ Signature Non-Identifiée - 12km</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 30px; text-align: center;">
+                        <button onclick="launchSequence('combat')" style="padding: 15px 30px; background: linear-gradient(135deg, rgba(255,0,0,0.3), rgba(255,100,100,0.2)); border: 2px solid #ff6666; color: #ff6666; cursor: pointer; border-radius: 5px; font-size: 16px; text-transform: uppercase;">
+                            ENGAGER LE COMBAT
+                        </button>
+                    </div>
+                `
+            },
+            starmap: {
+                title: "CARTE STELLAIRE",
+                content: `
+                    <h3>🌌 Navigation Galactique</h3>
+                    <div style="margin: 20px 0;">
+                        <div style="background: rgba(0,100,200,0.1); padding: 20px; border-radius: 10px; border: 1px solid rgba(0,150,255,0.3);">
+                            <h4>Système Actuel: STANTON</h4>
+                            <ul style="list-style: none; padding: 10px;">
+                                <li>📍 Position: Crusader L1</li>
+                                <li>⛽ Station la plus proche: Port Olisar (45km)</li>
+                                <li>🌟 Jump Point détecté: PYRO (Vérifié)</li>
+                            </ul>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <h4>Destinations Disponibles:</h4>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px;">
+                                <button style="padding: 10px; background: rgba(0,255,255,0.1); border: 1px solid #00ffff; color: #00ffff; cursor: pointer; border-radius: 5px;">HURSTON</button>
+                                <button style="padding: 10px; background: rgba(0,255,255,0.1); border: 1px solid #00ffff; color: #00ffff; cursor: pointer; border-radius: 5px;">ARCCORP</button>
+                                <button style="padding: 10px; background: rgba(0,255,255,0.1); border: 1px solid #00ffff; color: #00ffff; cursor: pointer; border-radius: 5px;">MICROTECH</button>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            missions: {
+                title: "CENTRE DE MISSIONS",
+                content: `
+                    <h3>📋 Missions Disponibles</h3>
+                    <div style="margin-top: 20px;">
+                        <div style="background: rgba(0,255,100,0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(0,255,100,0.3); margin-bottom: 15px;">
+                            <h4 style="color: #00ff66;">Mission Principale</h4>
+                            <p>Escorter le convoi de Hurston Dynamics</p>
+                            <small>Récompense: 25,000 UEC | Difficulté: ⭐⭐⭐</small>
+                        </div>
+                        <div style="background: rgba(255,255,0,0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,0,0.3); margin-bottom: 15px;">
+                            <h4 style="color: #ffff66;">Mission Secondaire</h4>
+                            <p>Livraison de cargaison médicale</p>
+                            <small>Récompense: 8,000 UEC | Difficulté: ⭐</small>
+                        </div>
+                        <div style="background: rgba(255,100,255,0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,100,255,0.3);">
+                            <h4 style="color: #ff66ff;">Mission Bonus</h4>
+                            <p>Éliminer les pirates du secteur</p>
+                            <small>Récompense: 15,000 UEC | Difficulté: ⭐⭐⭐⭐</small>
+                        </div>
+                    </div>
+                `
+            },
+            squadron: {
+                title: "GESTION D'ESCADRON",
+                content: `
+                    <h3>👥 Membres de l'Escadron</h3>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px;">
+                        <div style="background: rgba(0,255,0,0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(0,255,0,0.3);">
+                            <h4>Joueur 1</h4>
+                            <p>Statut: <span style="color: #00ff00;">EN LIGNE</span></p>
+                            <p>Vaisseau: Origin 325a</p>
+                            <p>Position: Crusader</p>
+                        </div>
+                        <div style="background: rgba(0,255,0,0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(0,255,0,0.3);">
+                            <h4>Joueur 2</h4>
+                            <p>Statut: <span style="color: #00ff00;">EN LIGNE</span></p>
+                            <p>Vaisseau: Aegis Gladius</p>
+                            <p>Position: Port Olisar</p>
+                        </div>
+                        <div style="background: rgba(255,255,0,0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,0,0.3);">
+                            <h4>Joueur 3</h4>
+                            <p>Statut: <span style="color: #ffff00;">ABSENT</span></p>
+                            <p>Vaisseau: Drake Cutlass</p>
+                            <p>Dernière position: Hurston</p>
+                        </div>
+                        <div style="background: rgba(100,100,100,0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(100,100,100,0.3);">
+                            <h4>+ Inviter</h4>
+                            <p style="opacity: 0.5;">Ajouter un membre</p>
+                        </div>
+                    </div>
+                `
+            },
+            garage: {
+                title: "HANGAR SPATIAL",
+                content: `
+                    <h3>🚀 Vos Vaisseaux</h3>
+                    <div style="margin-top: 20px;">
+                        <div style="background: rgba(0,150,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(0,150,255,0.3); margin-bottom: 15px;">
+                            <h4>RSI Aurora MR</h4>
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px;">
+                                <div>
+                                    <small>Boucliers</small>
+                                    <div style="background: rgba(0,255,255,0.2); height: 5px; border-radius: 3px;">
+                                        <div style="background: #00ffff; height: 100%; width: 80%; border-radius: 3px;"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <small>Moteurs</small>
+                                    <div style="background: rgba(0,255,255,0.2); height: 5px; border-radius: 3px;">
+                                        <div style="background: #00ffff; height: 100%; width: 60%; border-radius: 3px;"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <small>Armes</small>
+                                    <div style="background: rgba(0,255,255,0.2); height: 5px; border-radius: 3px;">
+                                        <div style="background: #00ffff; height: 100%; width: 40%; border-radius: 3px;"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <small>Cargo</small>
+                                    <div style="background: rgba(0,255,255,0.2); height: 5px; border-radius: 3px;">
+                                        <div style="background: #00ffff; height: 100%; width: 30%; border-radius: 3px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button style="margin-top: 15px; padding: 8px 15px; background: rgba(0,255,255,0.2); border: 1px solid #00ffff; color: #00ffff; cursor: pointer; border-radius: 5px;">
+                                PERSONNALISER
+                            </button>
+                        </div>
+                    </div>
+                `
+            },
+            shields: {
+                title: "GESTION DES BOUCLIERS",
+                content: `
+                    <h3>🛡️ Configuration des Boucliers</h3>
+                    <div style="margin-top: 20px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <div style="display: inline-block; position: relative; width: 200px; height: 200px;">
+                                <svg width="200" height="200">
+                                    <polygon points="100,30 170,70 170,130 100,170 30,130 30,70" 
+                                             fill="none" stroke="#00ffff" stroke-width="2" opacity="0.5"/>
+                                    <polygon points="100,50 150,80 150,120 100,150 50,120 50,80" 
+                                             fill="rgba(0,255,255,0.1)" stroke="#00ffff" stroke-width="2"/>
+                                </svg>
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                                    <div style="font-size: 24px; font-weight: bold;">87%</div>
+                                    <div style="font-size: 12px;">INTÉGRITÉ</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                            <div>
+                                <label>Avant: </label>
+                                <input type="range" min="0" max="100" value="30" style="width: 100%;">

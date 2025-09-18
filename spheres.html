@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sphères d'Énergie - Navigation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #000033 0%, #000066 50%, #000033 100%);
+            font-family: 'Arial', sans-serif;
+            color: #00ffff;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sphere-container {
+            flex: 1;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .sphere-container:hover {
+            transform: scale(1.02);
+            box-shadow: inset 0 0 50px rgba(0, 255, 255, 0.3);
+        }
+        
+        .sphere-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+        }
+        
+        .sphere-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 10;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+        
+        .sphere-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00ffff;
+            letter-spacing: 2px;
+        }
+        
+        .sphere-description {
+            font-size: 14px;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+        
+        .divider {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, transparent, #00ffff, transparent);
+            transform: translateX(-50%);
+            z-index: 5;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 25px;
+            border: 1px solid #00ffff;
+        }
+        
+        .controls p {
+            margin: 0;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            text-align: center;
+            z-index: 20;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 255, 255, 0.3);
+            border-top: 3px solid #00ffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sphere-container" onclick="loadSphere('sphere1.html')">
+            <div class="sphere-info">
+                <div class="sphere-title">VORTEX GALACTIQUE</div>
+                <div class="sphere-description">
+                    Bouclier d'énergie avec vortex galactique<br>
+                    Particules en spirale et anneaux d'énergie
+                </div>
+            </div>
+            <div class="loading" id="loading1">
+                <div class="spinner"></div>
+                <div>Chargement du Vortex...</div>
+            </div>
+            <iframe id="sphere1" src="" style="display: none;"></iframe>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="sphere-container" onclick="loadSphere('sphere2.html')">
+            <div class="sphere-info">
+                <div class="sphere-title">STRUCTURE GÉODÉSIQUE</div>
+                <div class="sphere-description">
+                    Structure hexagonale et pentagonale<br>
+                    Galaxie de particules ultra-dense
+                </div>
+            </div>
+            <div class="loading" id="loading2">
+                <div class="spinner"></div>
+                <div>Chargement de la Structure...</div>
+            </div>
+            <iframe id="sphere2" src="" style="display: none;"></iframe>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="sphere-container" onclick="loadSphere('sphere3-simple.html')">
+            <div class="sphere-info">
+                <div class="sphere-title">SPHÈRE MAGIQUE</div>
+                <div class="sphere-description">
+                    Effet Perlin noise avec shaders<br>
+                    Anneau lumineux et particules flottantes
+                </div>
+            </div>
+            <div class="loading" id="loading3">
+                <div class="spinner"></div>
+                <div>Chargement de la Magie...</div>
+            </div>
+            <iframe id="sphere3-simple" src="" style="display: none;"></iframe>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <p>Cliquez sur une sphère pour l'afficher en plein écran</p>
+    </div>
+    
+    <script>
+        let currentSphere = null;
+        
+        function loadSphere(sphereFile) {
+            // Masquer tous les iframes et loading
+            document.querySelectorAll('iframe').forEach(iframe => iframe.style.display = 'none');
+            document.querySelectorAll('.loading').forEach(loading => loading.style.display = 'block');
+            
+            // Charger la sphère demandée
+            const iframeId = sphereFile.replace('.html', '');
+            const iframe = document.getElementById(iframeId);
+            if (iframe) {
+                iframe.src = sphereFile;
+                iframe.style.display = 'block';
+            } else {
+                console.error('Iframe non trouvé pour:', iframeId);
+                return;
+            }
+            
+            // Masquer le loading après chargement
+            iframe.onload = function() {
+                let loadingId = '1';
+                if (sphereFile === 'sphere2.html') loadingId = '2';
+                else if (sphereFile === 'sphere3-simple.html') loadingId = '3';
+                const loading = document.getElementById('loading' + loadingId);
+                if (loading) {
+                    loading.style.display = 'none';
+                }
+            };
+            
+            currentSphere = sphereFile;
+        }
+        
+        // Charger automatiquement la première sphère au démarrage
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                loadSphere('sphere1.html');
+            }, 1000);
+        });
+        
+        // Gestion des raccourcis clavier
+        document.addEventListener('keydown', function(e) {
+            if (e.key === '1') {
+                loadSphere('sphere1.html');
+            } else if (e.key === '2') {
+                loadSphere('sphere2.html');
+            } else if (e.key === '3') {
+                loadSphere('sphere3-simple.html');
+            } else if (e.key === 'Escape') {
+                // Retour à la vue split
+                document.querySelectorAll('iframe').forEach(iframe => iframe.style.display = 'none');
+                document.querySelectorAll('.loading').forEach(loading => loading.style.display = 'block');
+                currentSphere = null;
+            }
+        });
+    </script>
+</body>
+</html>

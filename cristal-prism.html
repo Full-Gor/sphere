@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Univers Cristallin 3D - Prismes Interactifs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            overflow-x: hidden;
+            color: white;
+            cursor: grab;
+        }
+
+        body:active {
+            cursor: grabbing;
+        }
+
+        /* Canvas 3D */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #canvas-container canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Navigation principale */
+        .main-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+            padding: 20px 50px;
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 2em;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #00ffff);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 3s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            list-style: none;
+        }
+
+        .nav-tab {
+            position: relative;
+            padding: 12px 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9em;
+        }
+
+        .nav-tab::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .nav-tab:hover::before {
+            left: 100%;
+        }
+
+        .nav-tab:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(45deg, rgba(0,255,255,0.2), rgba(255,0,255,0.2));
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 40px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Contenu avec parallaxe */
+        .parallax-container {
+            position: relative;
+            z-index: 100;
+            margin-top: 100vh;
+            background: rgba(0,0,0,0.7);
+        }
+
+        .parallax-section {
+            min-height: 100vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 1s ease;
+        }
+
+        .parallax-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .content-box {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 60px;
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease;
+        }
+
+        .content-box:hover {
+            transform: perspective(1000px) rotateX(5deg);
+        }
+
+        .parallax-title {
+            font-size: 4em;
+            margin-bottom: 30px;
+            font-weight: 100;
+            letter-spacing: 5px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .glitch {
+            position: relative;
+            color: white;
+            animation: glitch 2s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 100% {
+                text-shadow: 
+                    0.05em 0 0 rgba(255,0,0,0.75),
+                    -0.025em -0.05em 0 rgba(0,255,0,0.75),
+                    0.025em 0.05em 0 rgba(0,0,255,0.75);
+            }
+            50% {
+                text-shadow: 
+                    0.05em 0 0 rgba(255,0,0,0.75),
+                    -0.05em -0.025em 0 rgba(0,255,0,0.75),
+                    0.025em 0.05em 0 rgba(0,0,255,0.75);
+            }
+        }
+
+        .parallax-text {
+            font-size: 1.3em;
+            line-height: 1.8;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 30px;
+        }
+
+        /* Contrôles flottants */
+        .floating-controls {
+            position: fixed;
+            right: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 500;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            transform: translate(-50%, -50%);
+            transition: width 0.5s, height 0.5s;
+        }
+
+        .control-btn:hover::before {
+            width: 100px;
+            height: 100px;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255,255,255,0.2);
+            border-color: white;
+            box-shadow: 0 0 30px rgba(255,255,255,0.5);
+        }
+
+        .tooltip {
+            position: absolute;
+            right: 80px;
+            background: rgba(0,0,0,0.9);
+            padding: 10px 15px;
+            border-radius: 10px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .control-btn:hover .tooltip {
+            opacity: 1;
+        }
+
+        /* Menu latéral */
+        .side-menu {
+            position: fixed;
+            left: -300px;
+            top: 0;
+            width: 300px;
+            height: 100vh;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(20px);
+            z-index: 999;
+            transition: left 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            padding: 100px 30px 30px;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .side-menu.active {
+            left: 0;
+        }
+
+        .menu-toggle {
+            position: fixed;
+            left: 30px;
+            top: 30px;
+            z-index: 1001;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding: 5px;
+        }
+
+        .menu-line {
+            height: 2px;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .menu-toggle.active .menu-line:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .menu-toggle.active .menu-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .menu-toggle.active .menu-line:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -6px);
+        }
+
+        .menu-item {
+            padding: 15px 0;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-item::after {
+            content: '';
+            position: absolute;
+            left: -100%;
+            bottom: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffff, transparent);
+            animation: none;
+        }
+
+        .menu-item:hover::after {
+            animation: slideIn 0.5s forwards;
+        }
+
+        @keyframes slideIn {
+            to { left: 100%; }
+        }
+
+        /* Boutons d'action */
+        .action-buttons {
+            position: fixed;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 500;
+            display: flex;
+            gap: 20px;
+        }
+
+        .action-btn {
+            padding: 15px 40px;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            background-size: 200% 200%;
+            border: none;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-radius: 50px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            animation: gradientShift 2s ease infinite;
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(255,255,255,0.2);
+        }
+
+        /* Indicateur de scroll */
+        .scroll-indicator {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-20px); }
+        }
+
+        .scroll-text {
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        /* Stats overlay */
+        .stats-overlay {
+            position: fixed;
+            top: 100px;
+            left: 50px;
+            z-index: 200;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-family: monospace;
+            min-width: 200px;
+        }
+
+        .stat-item {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            color: #00ffff;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-tabs {
+                display: none;
+            }
+            
+            .floating-controls {
+                right: 20px;
+            }
+            
+            .parallax-title {
+                font-size: 2.5em;
+            }
+            
+            .content-box {
+                padding: 30px;
+            }
+            
+            .stats-overlay {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Canvas 3D -->
+    <div id="canvas-container"></div>
+
+    <!-- Navigation principale -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="logo">CRYSTAL PRISM</div>
+            <ul class="nav-tabs">
+                <li class="nav-tab active" data-section="home">Accueil</li>
+                <li class="nav-tab" data-section="gallery">Galerie</li>
+                <li class="nav-tab" data-section="experience">Expérience</li>
+                <li class="nav-tab" data-section="about">À Propos</li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Menu toggle -->
+    <div class="menu-toggle" id="menuToggle">
+        <div class="menu-line"></div>
+        <div class="menu-line"></div>
+        <div class="menu-line"></div>
+    </div>
+
+    <!-- Menu latéral -->
+    <div class="side-menu" id="sideMenu">
+        <div class="menu-item" data-scene="crystal">Scène Cristalline</div>
+        <div class="menu-item" data-scene="prism">Monde Prismatique</div>
+        <div class="menu-item" data-scene="geometric">Formes Géométriques</div>
+        <div class="menu-item" data-scene="abstract">Art Abstrait</div>
+        <div class="menu-item" data-scene="minimal">Minimaliste</div>
+    </div>
+
+    <!-- Contrôles flottants -->
+    <div class="floating-controls">
+        <button class="control-btn" id="btnRotation">
+            ⟲
+            <span class="tooltip">Rotation Auto</span>
+        </button>
+        <button class="control-btn" id="btnColors">
+            🎨
+            <span class="tooltip">Changer Couleurs</span>
+        </button>
+        <button class="control-btn" id="btnWireframe">
+            ◻
+            <span class="tooltip">Mode Fil de Fer</span>
+        </button>
+        <button class="control-btn" id="btnAddShape">
+            ✚
+            <span class="tooltip">Ajouter Forme</span>
+        </button>
+        <button class="control-btn" id="btnExplode">
+            💥
+            <span class="tooltip">Explosion</span>
+        </button>
+    </div>
+
+    <!-- Stats overlay -->
+    <div class="stats-overlay">
+        <div class="stat-item">
+            <span>FPS:</span>
+            <span id="fps">60</span>
+        </div>
+        <div class="stat-item">
+            <span>Objets:</span>
+            <span id="objects">0</span>
+        </div>
+        <div class="stat-item">
+            <span>Vertices:</span>
+            <span id="vertices">0</span>
+        </div>
+        <div class="stat-item">
+            <span>Rotation:</span>
+            <span id="rotation-status">ON</span>
+        </div>
+    </div>
+
+    <!-- Indicateur de scroll -->
+    <div class="scroll-indicator">
+        <div class="scroll-text">↓ SCROLL ↓</div>
+    </div>
+
+    <!-- Contenu avec parallaxe -->
+    <div class="parallax-container">
+        <section class="parallax-section" id="section1">
+            <div class="content-box">
+                <h1 class="parallax-title glitch">UNIVERS CRISTALLIN</h1>
+                <p class="parallax-text">
+                    Explorez un monde de formes géométriques parfaites, où les prismes dansent avec la lumière
+                    et les cristaux révèlent leurs facettes infinies. Chaque mouvement révèle une nouvelle perspective,
+                    chaque angle une nouvelle beauté.
+                </p>
+                <div class="action-buttons">
+                    <button class="action-btn" id="btnStart">Commencer</button>
+                    <button class="action-btn" id="btnRandomize">Randomiser</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="parallax-section" id="section2">
+            <div class="content-box">
+                <h1 class="parallax-title">FORMES PRISMATIQUES</h1>
+                <p class="parallax-text">
+                    Les prismes décomposent la lumière en un spectre infini de couleurs. 
+                    Manipulez les formes avec votre souris, observez comment elles interagissent,
+                    créent des reflets et des ombres dans un ballet géométrique hypnotique.
+                </p>
+            </div>
+        </section>
+
+        <section class="parallax-section" id="section3">
+            <div class="content-box">
+                <h1 class="parallax-title glitch">GÉOMÉTRIE INTERACTIVE</h1>
+                <p class="parallax-text">
+                    Chaque forme répond à vos gestes, chaque cristal vibre à votre toucher virtuel.
+                    Cette expérience interactive fusionne l'art et la technologie pour créer
+                    un univers unique où vous êtes le chef d'orchestre d'une symphonie visuelle.
+                </p>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let shapes = [];
+        let mouseX = 0, mouseY = 0;
+        let isMouseDown = false;
+        let autoRotate = true;
+        let clock = new THREE.Clock();
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let selectedObject = null;
+
+        // Initialisation
+        function init() {
+            // Scène
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000000, 0.002);
+
+            // Caméra
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 50);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.setClearColor(0x000000, 1);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // Lumières
+            setupLights();
+
+            // Création des formes
+            createShapes();
+
+            // Particules de fond
+            createParticles();
+
+            // Event listeners
+            setupEventListeners();
+
+            // Animation
+            animate();
+        }
+
+        function setupLights() {
+            // Lumière ambiante
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            scene.add(ambientLight);
+
+            // Lumières directionnelles colorées
+            const light1 = new THREE.DirectionalLight(0x00ffff, 0.8);
+            light1.position.set(10, 10, 10);
+            light1.castShadow = true;
+            scene.add(light1);
+
+            const light2 = new THREE.DirectionalLight(0xff00ff, 0.8);
+            light2.position.set(-10, -10, 10);
+            light2.castShadow = true;
+            scene.add(light2);
+
+            const light3 = new THREE.PointLight(0xffffff, 1, 100);
+            light3.position.set(0, 0, 20);
+            scene.add(light3);
+
+            // Lumières qui bougent
+            const movingLight1 = new THREE.PointLight(0x00ff00, 0.5, 50);
+            scene.add(movingLight1);
+            shapes.push({ mesh: movingLight1, type: 'light', speed: 0.02 });
+
+            const movingLight2 = new THREE.PointLight(0xff0000, 0.5, 50);
+            scene.add(movingLight2);
+            shapes.push({ mesh: movingLight2, type: 'light', speed: 0.03 });
+        }
+
+        function createShapes() {
+            // Matériaux cristallins
+            const crystalMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0x00ffff,
+                metalness: 0.2,
+                roughness: 0.1,
+                transparent: true,
+                opacity: 0.8,
+                reflectivity: 1,
+                clearcoat: 1,
+                clearcoatRoughness: 0
+            });
+
+            const prismMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0xff00ff,
+                metalness: 0.3,
+                roughness: 0.2,
+                transparent: true,
+                opacity: 0.7,
+                reflectivity: 0.8
+            });
+
+            // Cube central
+            const cubeGeometry = new THREE.BoxGeometry(5, 5, 5);
+            const cube = new THREE.Mesh(cubeGeometry, crystalMaterial);
+            cube.castShadow = true;
+            cube.receiveShadow = true;
+            scene.add(cube);
+            shapes.push({ mesh: cube, type: 'cube', rotSpeed: { x: 0.01, y: 0.01 } });
+
+            // Prisme hexagonal
+            const prismGeometry = new THREE.CylinderGeometry(4, 4, 8, 6);
+            const prism = new THREE.Mesh(prismGeometry, prismMaterial);
+            prism.position.set(15, 0, 0);
+            prism.castShadow = true;
+            scene.add(prism);
+            shapes.push({ mesh: prism, type: 'prism', rotSpeed: { x: 0.015, y: 0.01 } });
+
+            // Octaèdre
+            const octahedronGeometry = new THREE.OctahedronGeometry(4);
+            const octahedron = new THREE.Mesh(octahedronGeometry, crystalMaterial);
+            octahedron.position.set(-15, 0, 0);
+            octahedron.castShadow = true;
+            scene.add(octahedron);
+            shapes.push({ mesh: octahedron, type: 'octahedron', rotSpeed: { x: 0.02, y: 0.015 } });
+
+            // Icosaèdre
+            const icosahedronGeometry = new THREE.IcosahedronGeometry(3);
+            const icosahedron = new THREE.Mesh(icosahedronGeometry, prismMaterial);
+            icosahedron.position.set(0, 12, 0);
+            icosahedron.castShadow = true;
+            scene.add(icosahedron);
+            shapes.push({ mesh: icosahedron, type: 'icosahedron', rotSpeed: { x: 0.01, y: 0.02 } });
+
+            // Tétraèdre
+            const tetrahedronGeometry = new THREE.TetrahedronGeometry(4);
+            const tetrahedron = new THREE.Mesh(tetrahedronGeometry, crystalMaterial);
+            tetrahedron.position.set(0, -12, 0);
+            tetrahedron.castShadow = true;
+            scene.add(tetrahedron);
+            shapes.push({ mesh: tetrahedron, type: 'tetrahedron', rotSpeed: { x: 0.025, y: 0.01 } });
+
+            // Dodécaèdre
+            const dodecahedronGeometry = new THREE.DodecahedronGeometry(3);
+            const dodecahedron = new THREE.Mesh(dodecahedronGeometry, prismMaterial);
+            dodecahedron.position.set(10, 8, -5);
+            dodecahedron.castShadow = true;
+            scene.add(dodecahedron);
+            shapes.push({ mesh: dodecahedron, type: 'dodecahedron', rotSpeed: { x: 0.015, y: 0.015 } });
+
+            // Torus
+            const torusGeometry = new THREE.TorusGeometry(4, 1.5, 16, 100);
+            const torus = new THREE.Mesh(torusGeometry, crystalMaterial);
+            torus.position.set(-10, -8, -5);
+            torus.castShadow = true;
+            scene.add(torus);
+            shapes.push({ mesh: torus, type: 'torus', rotSpeed: { x: 0.02, y: 0.01 } });
+
+            // Ajout de wireframes
+            shapes.forEach(shape => {
+                if (shape.type !== 'light') {
+                    const wireframe = new THREE.WireframeGeometry(shape.mesh.geometry);
+                    const line = new THREE.LineSegments(wireframe);
+                    line.material.depthTest = false;
+                    line.material.opacity = 0.25;
+                    line.material.transparent = true;
+                    shape.mesh.add(line);
+                }
+            });
+
+            updateStats();
+        }
+
+        function createParticles() {
+            const particleGeometry = new THREE.BufferGeometry();
+            const particleCount = 2000;
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 100;
+                positions[i + 1] = (Math.random() - 0.5) * 100;
+                positions[i + 2] = (Math.random() - 0.5) * 100;
+
+                const color = new THREE.Color();
+                color.setHSL(Math.random(), 1, 0.5);
+                colors[i] = color.r;
+                colors[i + 1] = color.g;
+                colors[i + 2] = color.b;
+            }
+
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const particleMaterial = new THREE.PointsMaterial({
+                size: 0.3,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            const particles = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particles);
+            shapes.push({ mesh: particles, type: 'particles', rotSpeed: { x: 0.001, y: 0.001 } });
+        }
+
+        function setupEventListeners() {
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mousedown', onMouseDown);
+            document.addEventListener('mouseup', onMouseUp);
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('scroll', onScroll);
+
+            // Observer pour les sections parallaxe
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.parallax-section').forEach(section => {
+                observer.observe(section);
+            });
+        }
+
+        function onMouseMove(event) {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            mouse.x = mouseX;
+            mouse.y = mouseY;
+
+            if (isMouseDown && selectedObject) {
+                selectedObject.rotation.x = mouseY * 3;
+                selectedObject.rotation.y = mouseX * 3;
+            }
+        }
+
+        function onMouseDown() {
+            isMouseDown = true;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(shapes.map(s => s.mesh).filter(m => m.type === 'Mesh'));
+            
+            if (intersects.length > 0) {
+                selectedObject = intersects[0].object;
+                autoRotate = false;
+            }
+        }
+
+        function onMouseUp() {
+            isMouseDown = false;
+            selectedObject = null;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onScroll() {
+            const scrollY = window.scrollY;
+            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollProgress = scrollY / maxScroll;
+
+            // Effet parallaxe sur la caméra
+            camera.position.z = 50 - scrollProgress * 20;
+            camera.rotation.z = scrollProgress * Math.PI * 0.1;
+
+            // Masquer l'indicateur de scroll
+            if (scrollY > 100) {
+                document.querySelector('.scroll-indicator').style.opacity = '0';
+            } else {
+                document.querySelector('.scroll-indicator').style.opacity = '1';
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = clock.getElapsedTime();
+            const delta = clock.getDelta();
+
+            // Animation des formes
+            shapes.forEach((shape, index) => {
+                if (shape.type === 'light') {
+                    // Animation des lumières
+                    shape.mesh.position.x = Math.sin(time * shape.speed) * 30;
+                    shape.mesh.position.y = Math.cos(time * shape.speed) * 30;
+                    shape.mesh.position.z = Math.sin(time * shape.speed * 2) * 20;
+                } else if (shape.type !== 'particles' && autoRotate) {
+                    // Rotation automatique des formes
+                    shape.mesh.rotation.x += shape.rotSpeed.x;
+                    shape.mesh.rotation.y += shape.rotSpeed.y;
+                    
+                    // Lévitation
+                    shape.mesh.position.y += Math.sin(time + index) * 0.01;
+                }
+
+                // Pulsation des formes
+                if (shape.type !== 'particles' && shape.type !== 'light') {
+                    const scale = 1 + Math.sin(time * 2 + index) * 0.05;
+                    shape.mesh.scale.set(scale, scale, scale);
+                }
+            });
+
+            // Rotation des particules
+            const particles = shapes.find(s => s.type === 'particles');
+            if (particles) {
+                particles.mesh.rotation.y += 0.001;
+                
+                // Animation des particules
+                const positions = particles.mesh.geometry.attributes.position.array;
+                for (let i = 0; i < positions.length; i += 3) {
+                    positions[i + 1] += Math.sin(time * 0.5 + positions[i]) * 0.01;
+                }
+                particles.mesh.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // Mise à jour des stats
+            const fps = Math.round(1 / delta);
+            const fpsElement = document.getElementById('fps');
+            if (fpsElement) fpsElement.textContent = fps;
+
+            // Interaction souris légère
+            if (!isMouseDown) {
+                camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
+                camera.position.y += (mouseY * 5 - camera.position.y) * 0.05;
+                camera.lookAt(scene.position);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Fonctions de contrôle
+        function toggleRotation() {
+            autoRotate = !autoRotate;
+            document.getElementById('rotation-status').textContent = autoRotate ? 'ON' : 'OFF';
+        }
+
+        function changeColors() {
+            shapes.forEach(shape => {
+                if (shape.mesh.material && shape.type !== 'particles') {
+                    const color = new THREE.Color();
+                    color.setHSL(Math.random(), 1, 0.5);
+                    shape.mesh.material.color = color;
+                }
+            });
+        }
+
+        function toggleWireframe() {
+            shapes.forEach(shape => {
+                if (shape.mesh.material && shape.type !== 'particles' && shape.type !== 'light') {
+                    shape.mesh.material.wireframe = !shape.mesh.material.wireframe;
+                }
+            });
+        }
+
+        function addShape() {
+            const geometries = [
+                new THREE.BoxGeometry(3, 3, 3),
+                new THREE.SphereGeometry(2, 32, 32),
+                new THREE.ConeGeometry(2, 4, 8),
+                new THREE.TorusKnotGeometry(2, 0.5, 100, 16)
+            ];
+
+            const geometry = geometries[Math.floor(Math.random() * geometries.length)];
+            
+            const material = new THREE.MeshPhysicalMaterial({
+                color: new THREE.Color().setHSL(Math.random(), 1, 0.5),
+                metalness: Math.random() * 0.5,
+                roughness: Math.random() * 0.5,
+                transparent: true,
+                opacity: 0.8,
+                reflectivity: Math.random()
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(
+                (Math.random() - 0.5) * 30,
+                (Math.random() - 0.5) * 30,
+                (Math.random() - 0.5) * 20
+            );
+            mesh.castShadow = true;
+            
+            scene.add(mesh);
+            shapes.push({
+                mesh: mesh,
+                type: 'dynamic',
+                rotSpeed: {
+                    x: Math.random() * 0.02,
+                    y: Math.random() * 0.02
+                }
+            });
+
+            updateStats();
+        }
+
+        function explodeShapes() {
+            shapes.forEach((shape, index) => {
+                if (shape.type !== 'particles' && shape.type !== 'light') {
+                    const targetPos = {
+                        x: shape.mesh.position.x * 2,
+                        y: shape.mesh.position.y * 2,
+                        z: shape.mesh.position.z * 2
+                    };
+
+                    // Animation d'explosion
+                    const startPos = {
+                        x: shape.mesh.position.x,
+                        y: shape.mesh.position.y,
+                        z: shape.mesh.position.z
+                    };
+
+                    let progress = 0;
+                    const explodeInterval = setInterval(() => {
+                        progress += 0.02;
+                        if (progress >= 1) {
+                            clearInterval(explodeInterval);
+                            // Retour à la position initiale
+                            setTimeout(() => {
+                                let returnProgress = 0;
+                                const returnInterval = setInterval(() => {
+                                    returnProgress += 0.02;
+                                    if (returnProgress >= 1) {
+                                        clearInterval(returnInterval);
+                                    }
+                                    shape.mesh.position.x = targetPos.x + (startPos.x - targetPos.x) * returnProgress;
+                                    shape.mesh.position.y = targetPos.y + (startPos.y - targetPos.y) * returnProgress;
+                                    shape.mesh.position.z = targetPos.z + (startPos.z - targetPos.z) * returnProgress;
+                                }, 16);
+                            }, 1000);
+                        }
+                        shape.mesh.position.x = startPos.x + (targetPos.x - startPos.x) * progress;
+                        shape.mesh.position.y = startPos.y + (targetPos.y - startPos.y) * progress;
+                        shape.mesh.position.z = startPos.z + (targetPos.z - startPos.z) * progress;
+                    }, 16);
+                }
+            });
+        }
+
+        function toggleMenu() {
+            const menu = document.querySelector('.side-menu');
+            const toggle = document.querySelector('.menu-toggle');
+            menu.classList.toggle('active');
+            toggle.classList.toggle('active');
+        }
+
+        function changeScene(type) {
+            // Nettoyer la scène actuelle
+            shapes.forEach(shape => {
+                if (shape.type !== 'particles' && shape.type !== 'light') {
+                    scene.remove(shape.mesh);
+                }
+            });
+            shapes = shapes.filter(s => s.type === 'particles' || s.type === 'light');
+
+            // Créer une nouvelle scène selon le type
+            switch(type) {
+                case 'crystal':
+                    createCrystalScene();
+                    break;
+                case 'prism':
+                    createPrismScene();
+                    break;
+                case 'geometric':
+                    createGeometricScene();
+                    break;
+                case 'abstract':
+                    createAbstractScene();
+                    break;
+                case 'minimal':
+                    createMinimalScene();
+                    break;
+            }
+            
+            updateStats();
+            toggleMenu();
+        }
+
+        function createCrystalScene() {
+            const crystalMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0x00ffff,
+                metalness: 0.1,
+                roughness: 0,
+                transparent: true,
+                opacity: 0.6,
+                reflectivity: 1,
+                clearcoat: 1
+            });
+
+            for (let i = 0; i < 10; i++) {
+                const geometry = new THREE.OctahedronGeometry(Math.random() * 3 + 1);
+                const crystal = new THREE.Mesh(geometry, crystalMaterial.clone());
+                crystal.position.set(
+                    (Math.random() - 0.5) * 30,
+                    (Math.random() - 0.5) * 30,
+                    (Math.random() - 0.5) * 20
+                );
+                crystal.material.color.setHSL(Math.random() * 0.2 + 0.5, 1, 0.5);
+                scene.add(crystal);
+                shapes.push({
+                    mesh: crystal,
+                    type: 'crystal',
+                    rotSpeed: { x: Math.random() * 0.02, y: Math.random() * 0.02 }
+                });
+            }
+        }
+
+        function createPrismScene() {
+            for (let i = 0; i < 8; i++) {
+                const geometry = new THREE.CylinderGeometry(2, 2, 6, 3 + Math.floor(Math.random() * 5));
+                const material = new THREE.MeshPhysicalMaterial({
+                    color: new THREE.Color().setHSL(i / 8, 1, 0.5),
+                    metalness: 0.3,
+                    roughness: 0.2,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                const prism = new THREE.Mesh(geometry, material);
+                prism.position.set(
+                    Math.cos(i * Math.PI / 4) * 15,
+                    Math.sin(i * Math.PI / 4) * 15,
+                    (Math.random() - 0.5) * 10
+                );
+                scene.add(prism);
+                shapes.push({
+                    mesh: prism,
+                    type: 'prism',
+                    rotSpeed: { x: 0.01, y: 0.015 }
+                });
+            }
+        }
+
+        function createGeometricScene() {
+            const geometries = [
+                new THREE.TetrahedronGeometry(3),
+                new THREE.BoxGeometry(4, 4, 4),
+                new THREE.OctahedronGeometry(3),
+                new THREE.DodecahedronGeometry(3),
+                new THREE.IcosahedronGeometry(3)
+            ];
+
+            geometries.forEach((geometry, index) => {
+                const material = new THREE.MeshPhysicalMaterial({
+                    color: new THREE.Color().setHSL(index / geometries.length, 1, 0.5),
+                    metalness: 0.5,
+                    roughness: 0.1,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                const angle = (index / geometries.length) * Math.PI * 2;
+                mesh.position.set(
+                    Math.cos(angle) * 12,
+                    0,
+                    Math.sin(angle) * 12
+                );
+                scene.add(mesh);
+                shapes.push({
+                    mesh: mesh,
+                    type: 'geometric',
+                    rotSpeed: { x: 0.015, y: 0.01 }
+                });
+            });
+        }
+
+        function createAbstractScene() {
+            for (let i = 0; i < 15; i++) {
+                const geometry = new THREE.TorusKnotGeometry(
+                    2 + Math.random() * 2,
+                    0.3 + Math.random() * 0.5,
+                    50 + Math.floor(Math.random() * 50),
+                    8 + Math.floor(Math.random() * 8)
+                );
+                const material = new THREE.MeshPhysicalMaterial({
+                    color: new THREE.Color().setHSL(Math.random(), 1, 0.5),
+                    metalness: Math.random(),
+                    roughness: Math.random(),
+                    transparent: true,
+                    opacity: 0.6 + Math.random() * 0.4
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(
+                    (Math.random() - 0.5) * 40,
+                    (Math.random() - 0.5) * 40,
+                    (Math.random() - 0.5) * 30
+                );
+                scene.add(mesh);
+                shapes.push({
+                    mesh: mesh,
+                    type: 'abstract',
+                    rotSpeed: { x: Math.random() * 0.02, y: Math.random() * 0.02 }
+                });
+            }
+        }
+
+        function createMinimalScene() {
+            const material = new THREE.MeshPhysicalMaterial({
+                color: 0xffffff,
+                metalness: 0,
+                roughness: 1,
+                transparent: false
+            });
+
+            const cube = new THREE.Mesh(new THREE.BoxGeometry(8, 8, 8), material);
+            scene.add(cube);
+            shapes.push({
+                mesh: cube,
+                type: 'minimal',
+                rotSpeed: { x: 0.005, y: 0.005 }
+            });
+
+            const sphere = new THREE.Mesh(new THREE.SphereGeometry(4, 32, 32), material.clone());
+            sphere.position.set(15, 0, 0);
+            sphere.material.color.setHex(0x000000);
+            scene.add(sphere);
+            shapes.push({
+                mesh: sphere,
+                type: 'minimal',
+                rotSpeed: { x: 0.01, y: 0 }
+            });
+        }
+
+        function startExperience() {
+            autoRotate = true;
+            explodeShapes();
+            setTimeout(() => {
+                changeColors();
+            }, 2000);
+        }
+
+        function randomizeScene() {
+            const scenes = ['crystal', 'prism', 'geometric', 'abstract', 'minimal'];
+            const randomScene = scenes[Math.floor(Math.random() * scenes.length)];
+            changeScene(randomScene);
+            changeColors();
+        }
+
+        function updateStats() {
+            let totalVertices = 0;
+            shapes.forEach(shape => {
+                if (shape.mesh.geometry) {
+                    totalVertices += shape.mesh.geometry.attributes.position ? 
+                        shape.mesh.geometry.attributes.position.count : 0;
+                }
+            });
+            
+            const objectsElement = document.getElementById('objects');
+            const verticesElement = document.getElementById('vertices');
+            
+            if (objectsElement) objectsElement.textContent = shapes.length;
+            if (verticesElement) verticesElement.textContent = totalVertices;
+        }
+
+        // Exposer les fonctions globalement
+        window.toggleMenu = toggleMenu;
+        window.toggleRotation = toggleRotation;
+        window.changeColors = changeColors;
+        window.toggleWireframe = toggleWireframe;
+        window.addShape = addShape;
+        window.explodeShapes = explodeShapes;
+        window.startExperience = startExperience;
+        window.randomizeScene = randomizeScene;
+        window.changeScene = changeScene;
+
+        // Initialisation au chargement de la page
+        window.addEventListener('DOMContentLoaded', function() {
+            init();
+            
+            // Attacher les événements aux boutons
+            const menuToggle = document.getElementById('menuToggle');
+            const btnRotation = document.getElementById('btnRotation');
+            const btnColors = document.getElementById('btnColors');
+            const btnWireframe = document.getElementById('btnWireframe');
+            const btnAddShape = document.getElementById('btnAddShape');
+            const btnExplode = document.getElementById('btnExplode');
+            const btnStart = document.getElementById('btnStart');
+            const btnRandomize = document.getElementById('btnRandomize');
+            
+            if (menuToggle) menuToggle.addEventListener('click', toggleMenu);
+            if (btnRotation) btnRotation.addEventListener('click', toggleRotation);
+            if (btnColors) btnColors.addEventListener('click', changeColors);
+            if (btnWireframe) btnWireframe.addEventListener('click', toggleWireframe);
+            if (btnAddShape) btnAddShape.addEventListener('click', addShape);
+            if (btnExplode) btnExplode.addEventListener('click', explodeShapes);
+            if (btnStart) btnStart.addEventListener('click', startExperience);
+            if (btnRandomize) btnRandomize.addEventListener('click', randomizeScene);
+            
+            // Menu items
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    changeScene(this.dataset.scene);
+                });
+            });
+            
+            // Navigation par onglets
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

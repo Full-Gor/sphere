@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vaisseau - Cockpit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            color: #00ffff;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Image de fond du vaisseau */
+        .vaisseau-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: url('image.png') center/cover;
+            z-index: 1;
+        }
+
+        /* Boutons - À ajouter selon vos instructions */
+        .bouton {
+            position: absolute;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        /* Bouton clignotant */
+        .exemple-bouton {
+            left: 784px;
+            top: 437px;
+            width: 12px;
+            height: 4px;
+            background: rgba(255, 0, 0, 0.2);
+            border: 2px solid #ff0000;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #ff0000;
+            font-weight: bold;
+            /* Effet de clignotement */
+            animation: clignotement 0.5s ease-in-out infinite alternate;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        }
+
+        /* Bouton circulaire cyan */
+        .bouton-cercle {
+            left: 634px; /* 100px à gauche du premier bouton (784-100) */
+            top: 437px;
+            width: 30px;
+            height: 30px;
+            background: transparent; /* Vide à l'intérieur */
+            border: 2px solid #00ffff;
+            border-radius: 50%; /* Forme de cercle */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #00ffff;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+            transition: all 0.3s ease;
+            animation: clignotementCercle 1s ease-in-out infinite alternate;
+        }
+
+        .bouton-cercle:hover {
+            box-shadow: 0 0 30px rgba(0, 255, 255, 1);
+            transform: scale(1.1);
+        }
+
+        @keyframes clignotement {
+            0% {
+                opacity: 0.3;
+                box-shadow: 0 0 5px rgba(255, 0, 0, 0.3);
+            }
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+            }
+        }
+
+        @keyframes clignotementCercle {
+            0% { opacity: 0.4; box-shadow: 0 0 10px rgba(0, 255, 255, 0.4); }
+            100% { opacity: 1; box-shadow: 0 0 30px rgba(0, 255, 255, 1); }
+        }
+
+        /* Fenêtre de danger */
+        .danger-window {
+            position: absolute;
+            left: 800px;
+            top: 237px; /* 200px plus haut que le bouton (437-200) */
+            width: 70px;
+            height: 50px;
+            background: rgba(255, 0, 0, 0.3);
+            border: 4px solid #ff0000;
+            border-radius: 5px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            /* Rayures noires diagonales */
+            background-image: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 3px,
+                    rgba(0, 0, 0, 0.9) 3px,
+                    rgba(0, 0, 0, 0.9) 6px
+                );
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.8), inset 0 0 20px rgba(255, 0, 0, 0.2);
+        }
+
+        .danger-window.active {
+            display: flex;
+            /* Animation d'ouverture de haut en bas + clignotement */
+            animation: openFromTop 1.5s ease-out forwards, dangerBlink 0.4s ease-in-out infinite alternate;
+        }
+
+        .danger-text {
+            color: #000000;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+            z-index: 25;
+            letter-spacing: 2px;
+            font-stretch: expanded;
+            /* Le texte ne clignote JAMAIS */
+            animation: none !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        @keyframes openFromTop {
+            0% {
+                transform-origin: top;
+                transform: scaleY(0);
+                opacity: 0;
+            }
+            50% {
+                transform-origin: top;
+                transform: scaleY(0.5);
+                opacity: 0.7;
+            }
+            100% {
+                transform-origin: top;
+                transform: scaleY(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes dangerBlink {
+            0% {
+                opacity: 0;
+                visibility: hidden;
+            }
+            100% {
+                opacity: 1;
+                visibility: visible;
+            }
+        }
+
+        /* Conteneur de la sphère */
+        .sphere-container {
+            position: absolute;
+            left: 834px; /* 200px à droite du bouton (634+200) */
+            top: 237px; /* 200px plus haut que le bouton (437-200) */
+            width: 100px;
+            height: 100px;
+            display: none;
+            z-index: 15;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.6);
+        }
+
+        /* Fenêtre d'information cyan */
+        .info-window {
+            position: absolute;
+            left: 924px; /* 50px + 20px + 20px à droite de la sphère (834+90) */
+            top: 177px; /* 10px plus haut que précédemment (187-10) */
+            width: 124px; /* 108px + 15% = 124.2px arrondi à 124px */
+            height: 31px; /* 27px + 15% = 31.05px arrondi à 31px */
+            background: rgba(0, 255, 255, 0.2);
+            border: 3px solid #00ffff;
+            border-radius: 10px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.8), inset 0 0 20px rgba(0, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        /* Fenêtre d'information 2 */
+        .info-window-top-left {
+            position: absolute;
+            left: 934px; /* 10px plus à droite que la première */
+            top: 208px; /* 15px plus bas (177 + 31) */
+            width: 124px;
+            height: 31px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 3px solid #00ffff;
+            border-radius: 10px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.8), inset 0 0 20px rgba(0, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        /* Fenêtre d'information 3 */
+        .info-window-bottom-left {
+            position: absolute;
+            left: 944px; /* 20px plus à droite que la première */
+            top: 254px; /* 31px + 15px gap + 31px plus bas */
+            width: 124px;
+            height: 31px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 3px solid #00ffff;
+            border-radius: 10px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.8), inset 0 0 20px rgba(0, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        /* Fenêtre d'information 4 */
+        .info-window-bottom-right {
+            position: absolute;
+            left: 954px; /* 30px plus à droite que la première */
+            top: 300px; /* 31px + 15px gap + 31px + 15px gap + 31px plus bas */
+            width: 124px;
+            height: 31px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 3px solid #00ffff;
+            border-radius: 10px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.8), inset 0 0 20px rgba(0, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        /* Tige de connexion */
+        .connection-rod {
+            position: absolute;
+            left: 924px; /* Angle gauche de la nouvelle fenêtre */
+            top: 208px; /* Angle bas de la nouvelle fenêtre (177 + 31) */
+            width: 2px;
+            height: 0px;
+            background: linear-gradient(to bottom, #00ffff, #00cccc);
+            display: none;
+            z-index: 18;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+            transform-origin: top;
+        }
+
+        .connection-rod.active {
+            display: block;
+            animation: rodExtend 1.5s ease-out forwards;
+            animation-delay: 0.5s; /* Juste après l'apparition de la fenêtre, avant le texte */
+        }
+
+        @keyframes rodExtend {
+            0% { 
+                height: 0px; 
+                opacity: 0; 
+            }
+            50% { 
+                opacity: 0.7; 
+            }
+            100% { 
+                height: 45px; /* Distance jusqu'à 5px de la sphère (50px - 5px) */
+                opacity: 1; 
+            }
+        }
+
+        .info-window.active {
+            display: flex;
+            animation: infoWindowAppear 0.5s ease-out forwards;
+        }
+
+        .info-window-top-left.active {
+            display: flex;
+            animation: infoWindowAppear 0.5s ease-out forwards;
+        }
+
+        .info-window-bottom-left.active {
+            display: flex;
+            animation: infoWindowAppear 0.5s ease-out forwards;
+        }
+
+        .info-window-bottom-right.active {
+            display: flex;
+            animation: infoWindowAppear 0.5s ease-out forwards;
+        }
+
+        .info-text {
+            color: #ffffff;
+            font-weight: 900; /* Très épais */
+            font-size: 12px; /* Plus grand pour la fenêtre encore agrandie */
+            text-align: center;
+            letter-spacing: 0.5px;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            opacity: 0;
+            animation: textReveal 2s ease-in-out forwards;
+            animation-delay: 1.2s; /* Délai après l'apparition de la fenêtre */
+            line-height: 1;
+            overflow: hidden;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.8), 0 0 5px rgba(255, 255, 255, 0.5); /* Double ombre blanche pour plus d'épaisseur */
+            -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.9); /* Contour blanc pour plus d'épaisseur */
+        }
+
+        @keyframes infoWindowAppear {
+            0% { 
+                transform: scale(0); 
+                opacity: 0; 
+            }
+            50% { 
+                transform: scale(0.5); 
+                opacity: 0.7; 
+            }
+            100% { 
+                transform: scale(1); 
+                opacity: 1; 
+            }
+        }
+
+        @keyframes textReveal {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .sphere-container.active {
+            display: block;
+            animation: sphereAppear 0.8s ease-out forwards;
+        }
+
+        #sphereCanvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+        }
+
+        @keyframes sphereAppear {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(0.5);
+                opacity: 0.7;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Image de fond du vaisseau -->
+    <div class="vaisseau-background"></div>
+    
+    <!-- Boutons - À ajouter selon vos instructions -->
+    <div class="bouton exemple-bouton" onclick="openDangerWindow()">
+        
+    </div>
+    
+    <!-- Bouton circulaire cyan -->
+    <div class="bouton bouton-cercle" onclick="cercleClick()">
+        
+    </div>
+
+    <!-- Fenêtre de danger -->
+    <div class="danger-window" id="dangerWindow">
+        <div class="danger-text">DANGER</div>
+    </div>
+
+        <!-- Sphère 3D -->
+        <div class="sphere-container" id="sphereContainer">
+            <canvas id="sphereCanvas"></canvas>
+        </div>
+
+        <!-- Fenêtre d'information -->
+        <div class="info-window" id="infoWindow">
+            <div class="info-text" id="infoText"></div>
+        </div>
+
+        <!-- Fenêtre d'information en haut à gauche -->
+        <div class="info-window-top-left" id="infoWindowTopLeft">
+            <div class="info-text" id="infoTextTopLeft"></div>
+        </div>
+
+        <!-- Fenêtre d'information en bas à gauche -->
+        <div class="info-window-bottom-left" id="infoWindowBottomLeft">
+            <div class="info-text" id="infoTextBottomLeft"></div>
+        </div>
+
+        <!-- Fenêtre d'information en bas à droite -->
+        <div class="info-window-bottom-right" id="infoWindowBottomRight">
+            <div class="info-text" id="infoTextBottomRight"></div>
+        </div>
+
+        <!-- Tige de connexion -->
+        <div class="connection-rod" id="connectionRod"></div>
+
+    <!-- Three.js pour la sphère 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // Sons
+        function playAlarmSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Son d'alarme de danger
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Fréquence d'alarme
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            } catch (e) {
+                console.log('Audio non supporté');
+            }
+        }
+        
+        function playFuturisticSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Son futuriste
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Fréquence futuriste
+                oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+                oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.2);
+                
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.4);
+            } catch (e) {
+                console.log('Audio non supporté');
+            }
+        }
+
+        let alarmInterval;
+
+        // Scripts pour les boutons
+        function openDangerWindow() {
+            const window = document.getElementById('dangerWindow');
+            
+            // Son futuriste au clic
+            playFuturisticSound();
+            
+            // Si la fenêtre est déjà ouverte, la fermer
+            if (window.classList.contains('active')) {
+                window.classList.remove('active');
+                // Arrêter l'alarme
+                if (alarmInterval) {
+                    clearInterval(alarmInterval);
+                    alarmInterval = null;
+                }
+            } else {
+                // Sinon, l'ouvrir
+                window.classList.add('active');
+                
+                // Son d'alarme répété toutes les 0.4s (même rythme que le clignotement)
+                alarmInterval = setInterval(() => {
+                    playAlarmSound();
+                }, 400);
+                
+                // Premier son immédiat
+                setTimeout(() => {
+                    playAlarmSound();
+                }, 100);
+            }
+        }
+
+        // Variables pour la sphère alvéolaire (copie exacte de test-alveolaire.html)
+        let sphereScene, sphereCamera, sphereRenderer, sphereShieldGroup;
+        let sphereInitialized = false;
+
+        // Configuration pour la sphère Warframe
+        const sphereConfig = {
+            shieldRadius: 2,
+            cellSpacing: 1.0,
+            cellDepth: 0.15,
+            subdivisions: 2,
+            colors: {
+                // Couleurs Warframe : sombres et métalliques
+                primary: 0x1a1a1a,      // Noir métallique
+                secondary: 0x333333,    // Gris foncé
+                accent: 0x4a4a4a,       // Gris moyen
+                highlight: 0x666666,    // Gris clair
+                energy: 0x00ffff,       // Cyan énergétique
+                danger: 0xff3232,       // Rouge d'alerte
+                white: 0xffffff
+            }
+        };
+
+        // Initialiser la sphère alvéolaire 3D (copie exacte du code original)
+        function initSphere() {
+            if (sphereInitialized) return;
+            
+            const canvas = document.getElementById('sphereCanvas');
+            
+            // Scène
+            sphereScene = new THREE.Scene();
+            sphereScene.fog = new THREE.Fog(0x0a0f1c, 5, 50);
+            
+            // Caméra
+            sphereCamera = new THREE.PerspectiveCamera(75, 100/100, 0.1, 1000);
+            sphereCamera.position.set(0, 0, 3);
+            
+            // Rendu
+            sphereRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
+            sphereRenderer.setSize(100, 100);
+            sphereRenderer.setClearColor(0x0a0f1c, 1);
+            
+            // Lumières Warframe
+            const ambientLight = new THREE.AmbientLight(0x001122, 0.3);
+            sphereScene.add(ambientLight);
+            
+            const coreLight = new THREE.PointLight(sphereConfig.colors.energy, 2, 8);
+            coreLight.position.set(0, 0, 0);
+            sphereScene.add(coreLight);
+            
+            const rimLight = new THREE.DirectionalLight(sphereConfig.colors.highlight, 0.8);
+            rimLight.position.set(5, 5, 5);
+            sphereScene.add(rimLight);
+            
+            // Lumière d'ambiance bleue
+            const blueLight = new THREE.PointLight(sphereConfig.colors.energy, 1, 15);
+            blueLight.position.set(0, 0, 5);
+            sphereScene.add(blueLight);
+            
+            // Créer le bouclier (copie exacte de createShield)
+            createSphereShield();
+            
+            sphereInitialized = true;
+        }
+
+        // Créer la structure géodésique (copie exacte)
+        function createSphereShield() {
+            if (sphereShieldGroup) {
+                sphereScene.remove(sphereShieldGroup);
+            }
+            
+            sphereShieldGroup = new THREE.Group();
+            sphereScene.add(sphereShieldGroup);
+            
+            // Créer la géométrie icosaédrique subdivisée
+            const geodesicGeometry = new THREE.IcosahedronGeometry(sphereConfig.shieldRadius, sphereConfig.subdivisions);
+            
+            // Matériau Warframe pour les facettes (INVISIBLE)
+            const faceMaterial = new THREE.MeshPhongMaterial({
+                color: sphereConfig.colors.primary,
+                emissive: sphereConfig.colors.accent,
+                emissiveIntensity: 0.2,
+                flatShading: true,
+                transparent: true,
+                opacity: 0.0, // FACETTES INVISIBLES
+                side: THREE.DoubleSide,
+                shininess: 100,
+                specular: sphereConfig.colors.highlight
+            });
+            
+            // Mesh principal (INVISIBLE)
+            const geodesicMesh = new THREE.Mesh(geodesicGeometry, faceMaterial);
+            sphereShieldGroup.add(geodesicMesh);
+            
+            // Arêtes lumineuses Warframe
+            const edgeGeometry = new THREE.EdgesGeometry(geodesicGeometry);
+            const edgeMaterial = new THREE.LineBasicMaterial({
+                color: sphereConfig.colors.energy,
+                linewidth: 2,
+                transparent: true,
+                opacity: 0.9
+            });
+            const edgeLines = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+            sphereShieldGroup.add(edgeLines);
+            
+            // Points lumineux aux sommets
+            const vertices = geodesicGeometry.attributes.position.array;
+            const vertexGeometry = new THREE.BufferGeometry();
+            vertexGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            
+            const vertexMaterial = new THREE.PointsMaterial({
+                color: sphereConfig.colors.energy,
+                size: 0.05,
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending
+            });
+            const vertexPoints = new THREE.Points(vertexGeometry, vertexMaterial);
+            sphereShieldGroup.add(vertexPoints);
+            
+            // Noyau énergétique central Warframe
+            const coreGeometry = new THREE.SphereGeometry(0.3, 32, 32);
+            const coreMaterial = new THREE.MeshBasicMaterial({
+                color: sphereConfig.colors.energy,
+                transparent: true,
+                opacity: 0.7,
+                emissive: sphereConfig.colors.energy,
+                emissiveIntensity: 0.3
+            });
+            const core = new THREE.Mesh(coreGeometry, coreMaterial);
+            sphereShieldGroup.add(core);
+            
+            // Ajouter des détails Warframe : anneaux énergétiques
+            const ringGeometry = new THREE.RingGeometry(0.4, 0.6, 16);
+            const ringMaterial = new THREE.MeshBasicMaterial({
+                color: sphereConfig.colors.energy,
+                transparent: true,
+                opacity: 0.4,
+                side: THREE.DoubleSide
+            });
+            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+            ring.rotation.x = Math.PI / 2;
+            sphereShieldGroup.add(ring);
+        }
+
+        // Animer la sphère Warframe
+        function animateSphere() {
+            if (!sphereInitialized) return;
+            
+            requestAnimationFrame(animateSphere);
+            
+            // Rotation HORIZONTALE UNIQUEMENT
+            sphereShieldGroup.rotation.y += 0.008;
+            
+            // Pulsation du noyau énergétique
+            const time = Date.now() * 0.001;
+            const core = sphereShieldGroup.children[sphereShieldGroup.children.length - 2]; // Le noyau
+            if (core) {
+                core.scale.setScalar(1 + Math.sin(time * 2) * 0.1);
+            }
+            
+            sphereRenderer.render(sphereScene, sphereCamera);
+        }
+
+        // Fonction pour le bouton circulaire
+        function cercleClick() {
+            // Son futuriste au clic
+            playFuturisticSound();
+            
+            // Animation de clic
+            const cercle = document.querySelector('.bouton-cercle');
+            cercle.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                cercle.style.transform = 'scale(1)';
+            }, 100);
+            
+            // Afficher/masquer la sphère
+            const sphereContainer = document.getElementById('sphereContainer');
+            const infoWindow = document.getElementById('infoWindow');
+            const infoWindowTopLeft = document.getElementById('infoWindowTopLeft');
+            const infoWindowBottomLeft = document.getElementById('infoWindowBottomLeft');
+            const infoWindowBottomRight = document.getElementById('infoWindowBottomRight');
+            const connectionRod = document.getElementById('connectionRod');
+            
+            if (sphereContainer.classList.contains('active')) {
+                // Masquer la sphère, toutes les fenêtres et la tige
+                sphereContainer.classList.remove('active');
+                infoWindow.classList.remove('active');
+                infoWindowTopLeft.classList.remove('active');
+                infoWindowBottomLeft.classList.remove('active');
+                infoWindowBottomRight.classList.remove('active');
+                connectionRod.classList.remove('active');
+                document.getElementById('infoText').textContent = '';
+                document.getElementById('infoTextTopLeft').textContent = '';
+                document.getElementById('infoTextBottomLeft').textContent = '';
+                document.getElementById('infoTextBottomRight').textContent = '';
+            } else {
+                // Afficher la sphère
+                initSphere();
+                sphereContainer.classList.add('active');
+                animateSphere();
+                
+                // Afficher les fenêtres une par une après la sphère
+                setTimeout(() => {
+                    // Fenêtre 1
+                    infoWindow.classList.add('active');
+                    
+                    // Fenêtre 2 (0.5s après la première)
+                    setTimeout(() => {
+                        infoWindowTopLeft.classList.add('active');
+                    }, 500);
+                    
+                    // Fenêtre 3 (0.5s après la deuxième)
+                    setTimeout(() => {
+                        infoWindowBottomLeft.classList.add('active');
+                    }, 1000);
+                    
+                    // Fenêtre 4 (0.5s après la troisième)
+                    setTimeout(() => {
+                        infoWindowBottomRight.classList.add('active');
+                        
+                        // Afficher la tige après la dernière fenêtre
+                        setTimeout(() => {
+                            connectionRod.classList.add('active');
+                        }, 500);
+                        
+                        // Afficher les textes après la tige
+                        setTimeout(() => {
+                            typewriterEffect();
+                            typewriterEffectTopLeft();
+                            typewriterEffectBottomLeft();
+                            typewriterEffectBottomRight();
+                        }, 2000);
+                    }, 1500);
+                }, 1000); // 1 seconde après l'apparition de la sphère
+            }
+            
+            console.log('Bouton circulaire cliqué !');
+        }
+
+        // Effet machine à écrire pour le texte
+        function typewriterEffect() {
+            const text = "ATMOSPHÈRE RESPIRABLE";
+            const textElement = document.getElementById('infoText');
+            let index = 0;
+            
+            textElement.textContent = '';
+            
+            const typeInterval = setInterval(() => {
+                if (index < text.length) {
+                    textElement.textContent += text[index];
+                    index++;
+                } else {
+                    clearInterval(typeInterval);
+                }
+            }, 100); // 100ms par lettre (plus rapide pour la petite fenêtre)
+        }
+
+        // Effet machine à écrire pour le texte en haut à gauche
+        function typewriterEffectTopLeft() {
+            const text = "VITESSE 2.4KM/H";
+            const textElement = document.getElementById('infoTextTopLeft');
+            let index = 0;
+            
+            textElement.textContent = '';
+            
+            const typeInterval = setInterval(() => {
+                if (index < text.length) {
+                    textElement.textContent += text[index];
+                    index++;
+                } else {
+                    clearInterval(typeInterval);
+                }
+            }, 100);
+        }
+
+        // Effet machine à écrire pour le texte en bas à gauche
+        function typewriterEffectBottomLeft() {
+            const text = "TEMPÉRATURE 22°C";
+            const textElement = document.getElementById('infoTextBottomLeft');
+            let index = 0;
+            
+            textElement.textContent = '';
+            
+            const typeInterval = setInterval(() => {
+                if (index < text.length) {
+                    textElement.textContent += text[index];
+                    index++;
+                } else {
+                    clearInterval(typeInterval);
+                }
+            }, 100);
+        }
+
+        // Effet machine à écrire pour le texte en bas à droite
+        function typewriterEffectBottomRight() {
+            const text = "PRESSION 1013HPA";
+            const textElement = document.getElementById('infoTextBottomRight');
+            let index = 0;
+            
+            textElement.textContent = '';
+            
+            const typeInterval = setInterval(() => {
+                if (index < text.length) {
+                    textElement.textContent += text[index];
+                    index++;
+                } else {
+                    clearInterval(typeInterval);
+                }
+            }, 100);
+        }
+
+        console.log('Vaisseau prêt !');
+    </script>
+</body>
+</html>

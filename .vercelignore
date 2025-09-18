@@ -1,0 +1,9 @@
+# Exclure les pages non nécessaires
+cristal-prism.html
+cube.html
+index-spheres.html
+spheres.html
+
+# Exclure les fichiers de développement
+.vscode/
+*.md

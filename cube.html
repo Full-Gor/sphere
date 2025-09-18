@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cube 3D Interactif avec Particules</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow-x: hidden;
+            color: white;
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 15px 50px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            opacity: 1;
+        }
+
+        .navbar:hover {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-tab:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .nav-tab.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: white;
+            box-shadow: 0 5px 20px rgba(255, 255, 255, 0.4);
+        }
+
+        /* Canvas 3D */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        /* Sections */
+        .content {
+            position: relative;
+            z-index: 10;
+            margin-top: 100px;
+            padding: 20px;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            margin-bottom: 30px;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .section h2 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5), 0 0 10px #fff; }
+            to { text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5), 0 0 20px #fff, 0 0 30px #fff; }
+        }
+
+        .section p {
+            font-size: 1.2em;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        /* Boutons de contrôle */
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Toggle visibility button */
+        .toggle-content-btn {
+            position: fixed;
+            top: 100px;
+            right: 30px;
+            z-index: 1001;
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+            border: none;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .toggle-content-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(135deg, #feca57 0%, #ff6b6b 100%);
+        }
+
+        .content.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .content {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .control-btn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .control-btn:active {
+            transform: translateY(-1px);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        /* Info panel */
+        .info-panel {
+            position: fixed;
+            top: 100px;
+            left: 30px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            z-index: 100;
+            min-width: 200px;
+            transition: all 0.3s ease;
+            opacity: 1;
+        }
+
+        .info-panel h3 {
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        .info-item {
+            margin: 10px 0;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 10px 20px;
+            }
+            
+            .nav-tabs {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .controls {
+                bottom: 20px;
+                right: 20px;
+            }
+            
+            .info-panel {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <ul class="nav-tabs">
+            <li class="nav-tab active" data-section="home">Accueil</li>
+            <li class="nav-tab" data-section="features">Fonctionnalités</li>
+            <li class="nav-tab" data-section="about">À propos</li>
+            <li class="nav-tab" data-section="contact">Contact</li>
+        </ul>
+    </nav>
+
+    <!-- Bouton toggle content -->
+    <button class="toggle-content-btn" onclick="toggleContent()">
+        <span id="toggle-text">Masquer Contenu</span>
+    </button>
+
+    <!-- Canvas 3D -->
+    <div id="canvas-container"></div>
+
+    <!-- Contenu des sections -->
+    <div class="content">
+        <section id="home" class="section active">
+            <h2>Bienvenue dans l'Univers 3D</h2>
+            <p>Explorez un monde fascinant de géométrie interactive et de particules dynamiques. Utilisez votre souris pour manipuler le cube en 3D et découvrez les effets visuels spectaculaires.</p>
+            <p>Ce projet utilise Three.js pour créer une expérience immersive avec des animations fluides et des transitions élégantes.</p>
+        </section>
+
+        <section id="features" class="section">
+            <h2>Fonctionnalités</h2>
+            <p>🎮 <strong>Interaction Souris:</strong> Faites tourner le cube en maintenant le clic gauche et en déplaçant la souris.</p>
+            <p>✨ <strong>Particules Dynamiques:</strong> Des milliers de particules animées créent un effet visuel hypnotique.</p>
+            <p>🎨 <strong>Animations Fluides:</strong> Transitions douces et effets de lumière réalistes.</p>
+            <p>📱 <strong>Design Responsive:</strong> Fonctionne parfaitement sur tous les appareils.</p>
+        </section>
+
+        <section id="about" class="section">
+            <h2>À propos</h2>
+            <p>Cette démonstration interactive combine les technologies web modernes pour créer une expérience visuelle captivante.</p>
+            <p>Le cube central peut être manipulé librement tandis que les particules environnantes créent une atmosphère dynamique et immersive.</p>
+        </section>
+
+        <section id="contact" class="section">
+            <h2>Contact</h2>
+            <p>Cette application a été créée avec Three.js, une puissante bibliothèque JavaScript pour la création de graphiques 3D dans le navigateur.</p>
+            <p>N'hésitez pas à explorer toutes les fonctionnalités interactives et à expérimenter avec les contrôles!</p>
+        </section>
+    </div>
+
+    <!-- Panneau d'information -->
+    <div class="info-panel">
+        <h3>Statistiques 3D</h3>
+        <div class="info-item">FPS: <span id="fps">60</span></div>
+        <div class="info-item">Particules: <span id="particles">5000</span></div>
+        <div class="info-item">Rotation: <span id="rotation">Active</span></div>
+    </div>
+
+    <!-- Boutons de contrôle -->
+    <div class="controls">
+        <button class="control-btn" onclick="toggleRotation()">Rotation Auto</button>
+        <button class="control-btn" onclick="changeColors()">Changer Couleurs</button>
+        <button class="control-btn" onclick="explodeParticles()">Explosion</button>
+        <button class="control-btn" onclick="resetScene()">Réinitialiser</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let cube, particleSystem;
+        let mouseX = 0, mouseY = 0;
+        let isMouseDown = false;
+        let autoRotate = true;
+        let clock = new THREE.Clock();
+        let particlesExploded = false;
+
+        // Initialisation de la scène
+        function init() {
+            // Scène
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000000, 0.001);
+
+            // Caméra
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // Lumières
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+
+            const pointLight = new THREE.PointLight(0xff0000, 1, 100);
+            pointLight.position.set(-5, -5, -5);
+            scene.add(pointLight);
+
+            // Création du cube
+            createCube();
+
+            // Création des particules
+            createParticles();
+
+            // Event listeners
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mousedown', onMouseDown);
+            document.addEventListener('mouseup', onMouseUp);
+            window.addEventListener('resize', onWindowResize);
+
+            animate();
+        }
+
+        // Création du cube
+        function createCube() {
+            const geometry = new THREE.BoxGeometry(5, 5, 5);
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x00ff00,
+                specular: 0x444444,
+                shininess: 100,
+                wireframe: false,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            cube = new THREE.Mesh(geometry, material);
+            scene.add(cube);
+
+            // Ajout des arêtes
+            const edges = new THREE.EdgesGeometry(geometry);
+            const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+            const wireframe = new THREE.LineSegments(edges, lineMaterial);
+            cube.add(wireframe);
+        }
+
+        // Création des particules
+        function createParticles() {
+            const particleGeometry = new THREE.BufferGeometry();
+            const particleCount = 5000;
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 100;
+                positions[i + 1] = (Math.random() - 0.5) * 100;
+                positions[i + 2] = (Math.random() - 0.5) * 100;
+
+                colors[i] = Math.random();
+                colors[i + 1] = Math.random();
+                colors[i + 2] = Math.random();
+            }
+
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const particleMaterial = new THREE.PointsMaterial({
+                size: 0.5,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending
+            });
+
+            particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particleSystem);
+        }
+
+        // Gestion de la souris
+        function onMouseMove(event) {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            if (isMouseDown) {
+                cube.rotation.y = mouseX * 3;
+                cube.rotation.x = mouseY * 3;
+            }
+        }
+
+        function onMouseDown() {
+            isMouseDown = true;
+            autoRotate = false;
+            document.getElementById('rotation').textContent = 'Manuelle';
+        }
+
+        function onMouseUp() {
+            isMouseDown = false;
+        }
+
+        // Animation
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = clock.getElapsedTime();
+
+            // Rotation automatique
+            if (autoRotate && cube) {
+                cube.rotation.x += 0.01;
+                cube.rotation.y += 0.01;
+            }
+
+            // Animation des particules
+            if (particleSystem) {
+                particleSystem.rotation.y += 0.001;
+                
+                if (!particlesExploded) {
+                    particleSystem.rotation.x = Math.sin(time * 0.5) * 0.1;
+                }
+
+                // Animation des positions des particules
+                const positions = particleSystem.geometry.attributes.position.array;
+                for (let i = 0; i < positions.length; i += 3) {
+                    positions[i + 1] += Math.sin(time + i) * 0.01;
+                }
+                particleSystem.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // Mise à jour du FPS
+            const fps = Math.round(1 / clock.getDelta());
+            document.getElementById('fps').textContent = fps;
+
+            renderer.render(scene, camera);
+        }
+
+        // Fonctions de contrôle
+        function toggleRotation() {
+            autoRotate = !autoRotate;
+            document.getElementById('rotation').textContent = autoRotate ? 'Active' : 'Inactive';
+        }
+
+        function toggleContent() {
+            const content = document.querySelector('.content');
+            const toggleBtn = document.getElementById('toggle-text');
+            const navbar = document.querySelector('.navbar');
+            const infoPanel = document.querySelector('.info-panel');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                navbar.style.opacity = '1';
+                navbar.style.pointerEvents = 'auto';
+                infoPanel.style.opacity = '1';
+                infoPanel.style.pointerEvents = 'auto';
+                toggleBtn.textContent = 'Masquer Contenu';
+            } else {
+                content.classList.add('hidden');
+                navbar.style.opacity = '0.1';
+                navbar.style.pointerEvents = 'none';
+                infoPanel.style.opacity = '0.1';
+                infoPanel.style.pointerEvents = 'none';
+                toggleBtn.textContent = 'Afficher Contenu';
+            }
+        }
+
+        function changeColors() {
+            if (cube) {
+                cube.material.color.setHex(Math.random() * 0xffffff);
+            }
+            
+            if (particleSystem) {
+                const colors = particleSystem.geometry.attributes.color.array;
+                for (let i = 0; i < colors.length; i++) {
+                    colors[i] = Math.random();
+                }
+                particleSystem.geometry.attributes.color.needsUpdate = true;
+            }
+        }
+
+        function explodeParticles() {
+            if (particleSystem && !particlesExploded) {
+                particlesExploded = true;
+                const positions = particleSystem.geometry.attributes.position.array;
+                
+                for (let i = 0; i < positions.length; i += 3) {
+                    positions[i] *= 2;
+                    positions[i + 1] *= 2;
+                    positions[i + 2] *= 2;
+                }
+                
+                particleSystem.geometry.attributes.position.needsUpdate = true;
+                
+                setTimeout(() => {
+                    particlesExploded = false;
+                    resetParticles();
+                }, 3000);
+            }
+        }
+
+        function resetParticles() {
+            if (particleSystem) {
+                const positions = particleSystem.geometry.attributes.position.array;
+                const particleCount = positions.length / 3;
+                
+                for (let i = 0; i < positions.length; i += 3) {
+                    positions[i] = (Math.random() - 0.5) * 100;
+                    positions[i + 1] = (Math.random() - 0.5) * 100;
+                    positions[i + 2] = (Math.random() - 0.5) * 100;
+                }
+                
+                particleSystem.geometry.attributes.position.needsUpdate = true;
+            }
+        }
+
+        function resetScene() {
+            if (cube) {
+                cube.rotation.set(0, 0, 0);
+                cube.material.color.setHex(0x00ff00);
+            }
+            resetParticles();
+            autoRotate = true;
+            document.getElementById('rotation').textContent = 'Active';
+        }
+
+        // Redimensionnement
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Gestion de la navigation par onglets
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Retirer la classe active de tous les onglets
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                
+                // Ajouter la classe active à l'onglet cliqué
+                this.classList.add('active');
+                const sectionId = this.dataset.section;
+                document.getElementById(sectionId).classList.add('active');
+            });
+        });
+
+        // Initialisation
+        init();
+    </script>
+</body>
+</html>

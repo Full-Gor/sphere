@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bouclier Alvéolaire 3D - Structure Géodésique Three.js</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: radial-gradient(ellipse at center, #0a0f1c 0%, #000000 100%);
+            overflow: hidden;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        canvas {
+            display: block;
+            cursor: grab;
+        }
+        
+        canvas:active {
+            cursor: grabbing;
+        }
+        
+        .controls {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(10, 10, 20, 0.9);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            color: #ffd700;
+            backdrop-filter: blur(20px);
+            box-shadow: 
+                0 0 30px rgba(255, 215, 0, 0.2),
+                inset 0 0 15px rgba(255, 215, 0, 0.1);
+            max-width: 240px;
+            z-index: 100;
+        }
+        
+        .controls h2 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .control-group {
+            margin: 4px 0;
+            padding: 5px;
+            background: rgba(255, 215, 0, 0.05);
+            border-radius: 4px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+            font-size: 10px;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+        }
+        
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, 
+                rgba(255, 215, 0, 0.2) 0%, 
+                rgba(255, 215, 0, 0.5) 50%, 
+                rgba(255, 170, 0, 0.8) 100%);
+            border-radius: 1px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle, #fff, #ffd700);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 6px rgba(255, 215, 0, 0.8);
+        }
+        
+        button {
+            width: 100%;
+            padding: 4px;
+            margin: 2px 0;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 9px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(255, 215, 0, 0.5);
+            background: linear-gradient(135deg, #ffaa00, #ff8800);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(10, 10, 20, 0.9);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            color: #ffd700;
+            font-size: 13px;
+            backdrop-filter: blur(20px);
+            min-width: 200px;
+            z-index: 100;
+        }
+        
+        .stats h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+        }
+        
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+        }
+        
+        .info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255, 215, 0, 0.6);
+            font-size: 12px;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+            z-index: 100;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .controls {
+                max-width: 220px;
+                padding: 8px;
+            }
+            
+            .controls h2 {
+                font-size: 12px;
+                margin-bottom: 6px;
+            }
+            
+            .control-group {
+                margin: 3px 0;
+                padding: 4px;
+            }
+            
+            .control-group label {
+                font-size: 9px;
+                margin-bottom: 2px;
+            }
+            
+            button {
+                padding: 3px;
+                font-size: 8px;
+                margin: 1px 0;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                top: 8px;
+                left: 8px;
+                right: 8px;
+                max-width: none;
+                padding: 6px;
+            }
+            
+            .controls h2 {
+                font-size: 11px;
+                margin-bottom: 5px;
+            }
+            
+            .control-group {
+                margin: 2px 0;
+                padding: 3px;
+            }
+            
+            .control-group label {
+                font-size: 8px;
+                margin-bottom: 1px;
+            }
+            
+            button {
+                padding: 2px;
+                font-size: 7px;
+                margin: 1px 0;
+            }
+            
+            .stats {
+                top: 8px;
+                right: 8px;
+                padding: 6px;
+                font-size: 9px;
+                min-width: 150px;
+            }
+            
+            .stats h3 {
+                font-size: 11px;
+                margin-bottom: 5px;
+            }
+            
+            .info {
+                bottom: 8px;
+                left: 8px;
+                font-size: 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .controls {
+                padding: 4px;
+            }
+            
+            .controls h2 {
+                font-size: 10px;
+            }
+            
+            .control-group label {
+                font-size: 7px;
+            }
+            
+            button {
+                padding: 2px;
+                font-size: 6px;
+            }
+            
+            .stats {
+                padding: 4px;
+                font-size: 8px;
+                min-width: 120px;
+            }
+            
+            .stats h3 {
+                font-size: 9px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .controls {
+                padding: 3px;
+            }
+            
+            .controls h2 {
+                font-size: 9px;
+            }
+            
+            .control-group label {
+                font-size: 6px;
+            }
+            
+            button {
+                padding: 1px;
+                font-size: 5px;
+            }
+            
+            .stats {
+                padding: 3px;
+                font-size: 7px;
+                min-width: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <div class="controls">
+        <h2>🛡️ Bouclier Alvéolaire 3D</h2>
+        
+        <div class="control-group">
+            <label>
+                <span>🔷 Espacement alvéoles</span>
+                <span id="spacingValue">1.0</span>
+            </label>
+            <input type="range" id="cellSpacing" min="0.5" max="2" step="0.05" value="1">
+        </div>
+        
+        <div class="control-group">
+            <label>
+                <span>📐 Profondeur facettes</span>
+                <span id="depthValue">0.15</span>
+            </label>
+            <input type="range" id="cellDepth" min="0" max="0.5" step="0.01" value="0.15">
+        </div>
+        
+        <div class="control-group">
+            <label>
+                <span>🌐 Subdivision</span>
+                <span id="subdivValue">2</span>
+            </label>
+            <input type="range" id="subdivision" min="1" max="4" step="1" value="2">
+        </div>
+        
+        <div class="control-group">
+            <label>
+                <span>💫 Rotation X</span>
+                <span id="rotXValue">0.5</span>
+            </label>
+            <input type="range" id="rotationX" min="0" max="2" step="0.1" value="0.5">
+        </div>
+        
+        <div class="control-group">
+            <label>
+                <span>💫 Rotation Y</span>
+                <span id="rotYValue">1.0</span>
+            </label>
+            <input type="range" id="rotationY" min="0" max="2" step="0.1" value="1">
+        </div>
+        
+        <button onclick="simulateMultipleImpacts()">⚡ Impact Multiple</button>
+        <button onclick="fireProjectileBurst()">🔴 Rafale de Projectiles</button>
+        <button onclick="toggleWireframe()">📐 Mode Wireframe</button>
+        <button onclick="togglePulsation()">💗 Pulsation</button>
+        <button onclick="resetShield()">🔄 Réinitialiser</button>
+    </div>
+    
+    <div class="stats">
+        <h3>📊 Statistiques</h3>
+        <div class="stat-line">
+            <span>FPS:</span>
+            <span class="stat-value" id="fps">60</span>
+        </div>
+        <div class="stat-line">
+            <span>Hexagones:</span>
+            <span class="stat-value" id="hexCount">0</span>
+        </div>
+        <div class="stat-line">
+            <span>Pentagones:</span>
+            <span class="stat-value" id="pentCount">0</span>
+        </div>
+        <div class="stat-line">
+            <span>Facettes totales:</span>
+            <span class="stat-value" id="totalFaces">0</span>
+        </div>
+        <div class="stat-line">
+            <span>Vertices:</span>
+            <span class="stat-value" id="vertexCount">0</span>
+        </div>
+        <div class="stat-line">
+            <span>Mode:</span>
+            <span class="stat-value" id="renderMode">Solide</span>
+        </div>
+    </div>
+    
+    <div class="info">
+        🖱️ Glisser pour tourner | Molette pour zoomer<br>
+        Les pentagones (12) sont nécessaires pour fermer la sphère
+    </div>
+    
+    <script>
+        // Configuration globale
+        const config = {
+            // Paramètres du bouclier
+            shieldRadius: 2,
+            cellSpacing: 1.0,
+            cellDepth: 0.15,
+            subdivisions: 2,
+            
+            // Visuel
+            wireframe: false,
+            pulsation: false,
+            pulsePhase: 0,
+            
+            // Couleurs
+            colors: {
+                gold: 0xffd700,
+                lightGold: 0xffeb64,
+                darkGold: 0xc89600,
+                white: 0xffffff,
+                red: 0xff3232
+            }
+        };
+        
+        // Variables Three.js
+        let scene, camera, renderer, controls;
+        let shieldGroup, projectiles = [], particles = [], impacts = [];
+        let frameCount = 0, lastTime = performance.now(), fps = 60;
+        let shield = null;
+        
+        // Initialisation Three.js
+        function init() {
+            // Scène
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x0a0f1c, 5, 50);
+            
+            // Caméra
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(5, 2, 5);
+            camera.lookAt(0, 0, 0);
+            
+            // Rendu
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setClearColor(0x0a0f1c, 1);
+            document.body.appendChild(renderer.domElement);
+            
+            // Contrôles
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 3;
+            controls.maxDistance = 15;
+            controls.maxPolarAngle = Math.PI;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+            
+            // Lumières
+            const ambientLight = new THREE.AmbientLight(0x001155, 0.4);
+            scene.add(ambientLight);
+            
+            const coreLight = new THREE.PointLight(0xffd700, 3, 10);
+            coreLight.position.set(0, 0, 0);
+            scene.add(coreLight);
+            
+            const rimLight = new THREE.DirectionalLight(0xffd700, 0.5);
+            rimLight.position.set(5, 5, 5);
+            scene.add(rimLight);
+            
+            // Créer le bouclier
+            createShield();
+            
+            // Événements
+            setupEventListeners();
+            
+            // Lancer l'animation
+            animate();
+        }
+        
+        // Créer la structure géodésique
+        function createShield() {
+            if (shieldGroup) {
+                scene.remove(shieldGroup);
+            }
+            
+            shieldGroup = new THREE.Group();
+            scene.add(shieldGroup);
+            
+            // Créer la géométrie icosaédrique subdivisée
+            const geodesicGeometry = new THREE.IcosahedronGeometry(config.shieldRadius, config.subdivisions);
+            
+            // Matériau pour les facettes
+            const faceMaterial = new THREE.MeshPhongMaterial({
+                color: config.colors.gold,
+                emissive: config.colors.darkGold,
+                emissiveIntensity: 0.3,
+                flatShading: true,
+                transparent: true,
+                opacity: 0.6,
+                side: THREE.DoubleSide
+            });
+            
+            // Mesh principal
+            const geodesicMesh = new THREE.Mesh(geodesicGeometry, faceMaterial);
+            shieldGroup.add(geodesicMesh);
+            
+            // Arêtes lumineuses
+            const edgeGeometry = new THREE.EdgesGeometry(geodesicGeometry);
+            const edgeMaterial = new THREE.LineBasicMaterial({
+                color: config.colors.lightGold,
+                linewidth: 2,
+                transparent: true,
+                opacity: 0.9
+            });
+            const edgeLines = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+            shieldGroup.add(edgeLines);
+            
+            // Points lumineux aux sommets
+            const vertices = geodesicGeometry.attributes.position.array;
+            const vertexGeometry = new THREE.BufferGeometry();
+            vertexGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            
+            const vertexMaterial = new THREE.PointsMaterial({
+                color: config.colors.lightGold,
+                size: 0.05,
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending
+            });
+            const vertexPoints = new THREE.Points(vertexGeometry, vertexMaterial);
+            shieldGroup.add(vertexPoints);
+            
+            // Noyau énergétique central
+            const coreGeometry = new THREE.SphereGeometry(0.3, 32, 32);
+            const coreMaterial = new THREE.MeshBasicMaterial({
+                color: config.colors.lightGold,
+                transparent: true,
+                opacity: 0.6
+            });
+            const core = new THREE.Mesh(coreGeometry, coreMaterial);
+            shieldGroup.add(core);
+            
+            // Stocker les références pour les animations
+            shield = {
+                group: shieldGroup,
+                mesh: geodesicMesh,
+                edges: edgeLines,
+                vertices: vertexPoints,
+                core: core,
+                faceMaterial: faceMaterial,
+                edgeMaterial: edgeMaterial,
+                vertexMaterial: vertexMaterial,
+                coreMaterial: coreMaterial
+            };
+            
+            updateStats();
+        }
+        
+        function updateStats() {
+            if (!shield) return;
+            
+            const geometry = shield.mesh.geometry;
+            const vertices = geometry.attributes.position.count;
+            const faces = geometry.index ? geometry.index.count / 3 : vertices / 3;
+            
+            // Estimation des hexagones et pentagones
+            const hexCount = Math.floor(faces * 0.8);
+            const pentCount = 12; // Toujours 12 pentagones dans une géodésique
+            
+            document.getElementById('hexCount').textContent = hexCount;
+            document.getElementById('pentCount').textContent = pentCount;
+            document.getElementById('totalFaces').textContent = faces;
+            document.getElementById('vertexCount').textContent = vertices;
+        }
+        
+        // Animation
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Calculer FPS
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime - lastTime >= 1000) {
+                fps = frameCount;
+                document.getElementById('fps').textContent = fps;
+                frameCount = 0;
+                lastTime = currentTime;
+            }
+            
+            // Mise à jour des contrôles
+            controls.update();
+            
+            // Pulsation
+            if (config.pulsation && shield) {
+                config.pulsePhase += 0.05;
+                const pulse = 1 + Math.sin(config.pulsePhase) * 0.1;
+                shield.group.scale.set(pulse, pulse, pulse);
+            }
+            
+            // Mise à jour des projectiles
+            updateProjectiles();
+            
+            // Mise à jour des particules
+            updateParticles();
+            
+            // Mise à jour des impacts
+            updateImpacts();
+            
+            // Rendu
+            renderer.render(scene, camera);
+        }
+        
+        function updateProjectiles() {
+            projectiles = projectiles.filter(proj => {
+                proj.position.add(proj.velocity);
+                proj.life--;
+                
+                // Vérifier collision avec le bouclier
+                const distance = proj.position.length();
+                if (distance <= config.shieldRadius && !proj.reflected) {
+                    // Réflexion
+                    const normal = proj.position.clone().normalize();
+                    const dot = proj.velocity.dot(normal);
+                    proj.velocity.sub(normal.multiplyScalar(2 * dot));
+                    proj.reflected = true;
+                    
+                    // Créer impact
+                    createImpactAt(proj.position);
+                }
+                
+                return proj.life > 0 && distance < 20;
+            });
+        }
+        
+        function updateParticles() {
+            particles = particles.filter(particle => {
+                particle.position.add(particle.velocity);
+                particle.velocity.multiplyScalar(0.98);
+                particle.material.opacity *= 0.96;
+                particle.scale.multiplyScalar(0.98);
+                
+                return particle.material.opacity > 0.01;
+            });
+        }
+        
+        function updateImpacts() {
+            impacts = impacts.filter(impact => {
+                impact.scale += 0.1;
+                impact.material.opacity *= 0.95;
+                return impact.material.opacity > 0.01;
+            });
+        }
+        
+        function createImpactAt(position) {
+            // Illuminer les cellules proches (effet visuel)
+            if (shield) {
+                shield.faceMaterial.emissiveIntensity = 0.8;
+                setTimeout(() => {
+                    shield.faceMaterial.emissiveIntensity = 0.3;
+                }, 200);
+            }
+            
+            // Créer onde de choc
+            const impactGeometry = new THREE.RingGeometry(0.1, 0.2, 32);
+            const impactMaterial = new THREE.MeshBasicMaterial({
+                color: config.colors.white,
+                transparent: true,
+                opacity: 1,
+                side: THREE.DoubleSide
+            });
+            const impact = new THREE.Mesh(impactGeometry, impactMaterial);
+            impact.position.copy(position);
+            impact.lookAt(camera.position);
+            scene.add(impact);
+            impacts.push(impact);
+            
+            // Créer particules
+            for (let i = 0; i < 20; i++) {
+                const particleGeometry = new THREE.SphereGeometry(0.02, 8, 8);
+                const particleMaterial = new THREE.MeshBasicMaterial({
+                    color: config.colors.lightGold,
+                    transparent: true,
+                    opacity: 1,
+                    blending: THREE.AdditiveBlending
+                });
+                const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 0.1 + Math.random() * 0.1;
+                particle.position.copy(position);
+                particle.velocity = new THREE.Vector3(
+                    Math.cos(angle) * speed,
+                    (Math.random() - 0.5) * speed,
+                    Math.sin(angle) * speed
+                );
+                particle.scale.setScalar(1);
+                
+                scene.add(particle);
+                particles.push(particle);
+            }
+        }
+        
+        function fireProjectile() {
+            const angle = Math.random() * Math.PI * 2;
+            const elevation = (Math.random() - 0.5) * Math.PI;
+            
+            const distance = 8;
+            const speed = 0.2;
+            
+            const projectileGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+            const projectileMaterial = new THREE.MeshBasicMaterial({
+                color: config.colors.red,
+                transparent: true,
+                opacity: 0.8
+            });
+            const projectile = new THREE.Mesh(projectileGeometry, projectileMaterial);
+            
+            projectile.position.set(
+                Math.cos(angle) * Math.cos(elevation) * distance,
+                Math.sin(elevation) * distance,
+                Math.sin(angle) * Math.cos(elevation) * distance
+            );
+            
+            projectile.velocity = new THREE.Vector3(
+                -Math.cos(angle) * Math.cos(elevation) * speed,
+                -Math.sin(elevation) * speed,
+                -Math.sin(angle) * Math.cos(elevation) * speed
+            );
+            
+            projectile.reflected = false;
+            projectile.life = 300;
+            
+            scene.add(projectile);
+            projectiles.push(projectile);
+        }
+        
+        // Fonctions de contrôle
+        function simulateMultipleImpacts() {
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const angle = Math.random() * Math.PI * 2;
+                    const elevation = (Math.random() - 0.5) * Math.PI;
+                    
+                    const position = new THREE.Vector3(
+                        Math.cos(angle) * Math.cos(elevation) * config.shieldRadius,
+                        Math.sin(elevation) * config.shieldRadius,
+                        Math.sin(angle) * Math.cos(elevation) * config.shieldRadius
+                    );
+                    
+                    createImpactAt(position);
+                }, i * 100);
+            }
+        }
+        
+        function fireProjectileBurst() {
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => fireProjectile(), i * 50);
+            }
+        }
+        
+        function toggleWireframe() {
+            config.wireframe = !config.wireframe;
+            if (shield) {
+                shield.mesh.material.wireframe = config.wireframe;
+                shield.edges.visible = !config.wireframe;
+            }
+            document.getElementById('renderMode').textContent = config.wireframe ? 'Wireframe' : 'Solide';
+        }
+        
+        function togglePulsation() {
+            config.pulsation = !config.pulsation;
+        }
+        
+        function resetShield() {
+            // Nettoyer les effets
+            projectiles.forEach(proj => scene.remove(proj));
+            particles.forEach(particle => scene.remove(particle));
+            impacts.forEach(impact => scene.remove(impact));
+            
+            projectiles = [];
+            particles = [];
+            impacts = [];
+            
+            // Réinitialiser la rotation
+            if (shield) {
+                shield.group.rotation.set(0, 0, 0);
+            }
+            
+            controls.reset();
+        }
+        
+        // Gestion des événements
+        function setupEventListeners() {
+            // Contrôles des sliders
+            document.getElementById('cellSpacing').addEventListener('input', (e) => {
+                config.cellSpacing = parseFloat(e.target.value);
+                document.getElementById('spacingValue').textContent = config.cellSpacing.toFixed(1);
+                createShield();
+            });
+            
+            document.getElementById('cellDepth').addEventListener('input', (e) => {
+                config.cellDepth = parseFloat(e.target.value);
+                document.getElementById('depthValue').textContent = config.cellDepth.toFixed(2);
+                createShield();
+            });
+            
+            document.getElementById('subdivision').addEventListener('input', (e) => {
+                config.subdivisions = parseInt(e.target.value);
+                document.getElementById('subdivValue').textContent = config.subdivisions;
+                createShield();
+            });
+            
+            document.getElementById('rotationX').addEventListener('input', (e) => {
+                const speed = parseFloat(e.target.value) * 0.01;
+                document.getElementById('rotXValue').textContent = e.target.value;
+                controls.autoRotateSpeed = speed;
+            });
+            
+            document.getElementById('rotationY').addEventListener('input', (e) => {
+                const speed = parseFloat(e.target.value) * 0.01;
+                document.getElementById('rotYValue').textContent = e.target.value;
+                controls.autoRotateSpeed = speed;
+            });
+            
+            // Redimensionnement
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            
+            // Double-clic pour tirer
+            renderer.domElement.addEventListener('dblclick', () => {
+                fireProjectile();
+            });
+        }
+        
+        // Lancement
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
